@@ -1,0 +1,30 @@
+{
+    "openai": {
+        "api_key": "",
+        "model": "gpt-4o-mini",
+        "temperature": 0.0,
+        "max_output_tokens": 4096
+    },
+    "extraction": {
+        "chunk_size": 200,
+        "overlap": 50,
+        "enable_normalization": true,
+        "enable_semantic_deduplication": true,
+        "save_intermediate_outputs": false
+    },
+    "cost": {
+        "enable_tracking": true,
+        "warning_threshold_usd": 5.0,
+        "hard_limit_usd": null
+    },
+    "directories": {
+        "output_directory": "outputs",
+        "download_directory": "data",
+        "log_directory": "logs"
+    },
+    "dictionaries": {
+        "entity_dictionary": "config/dictionaries/entity_map.json",
+        "attribute_dictionary": "config/dictionaries/attribute_map.json",
+        "disease_dictionary": "config/dictionaries/disease_map.json"
+    }
+}

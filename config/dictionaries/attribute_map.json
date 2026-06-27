@@ -1,0 +1,34 @@
+{
+    "alt": "Alanine aminotransferase (ALT)",
+    "alanine aminotransferase": "Alanine aminotransferase (ALT)",
+    "alt(sgpt)": "Alanine aminotransferase (ALT)",
+
+    "ast": "Aspartate aminotransferase (AST)",
+    "aspartate aminotransferase": "Aspartate aminotransferase (AST)",
+
+    "ecog": "ECOG Performance Status",
+    "eastern cooperative oncology group performance status": "ECOG Performance Status",
+
+    "lvef": "Left Ventricular Ejection Fraction",
+    "left ventricular ejection fraction": "Left Ventricular Ejection Fraction",
+
+    "bilirubin": "Total Bilirubin",
+    "total bilirubin": "Total Bilirubin",
+
+    "serum creatinine": "Serum Creatinine",
+
+    "platelets": "Platelet Count",
+    "platelet count": "Platelet Count",
+
+    "hemoglobin": "Hemoglobin",
+
+    "absolute neutrophil count": "Absolute Neutrophil Count",
+    "anc": "Absolute Neutrophil Count",
+
+    "pregnancy test": "Pregnancy Test",
+
+    "consent": "Informed Consent",
+
+    "ability to understand and willingness to sign informed consent": "Informed Consent",
+    "ability to understand the requirements of the study": "Informed Consent"
+}
