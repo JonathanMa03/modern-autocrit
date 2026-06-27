@@ -96,10 +96,19 @@ class ModernAutoCritPipeline:
 
         deduped_df = self.normalizer.remove_exact_duplicates(normalized_df)
         criteria_after_deduplication = len(deduped_df)
+        unmapped_terms = self.normalizer.find_unmapped_terms(deduped_df)
 
         FileManager.save_dataframe_excel(
             deduped_df,
             output_excel,
+        )
+        unmapped_output = output_excel.with_name(
+            output_excel.stem + "_unmapped_terms.xlsx"
+        )
+
+        FileManager.save_dataframe_excel(
+            unmapped_terms,
+            unmapped_output,
         )
 
         logger.info("Saved pipeline output to %s", output_excel)

@@ -30,5 +30,73 @@
     "consent": "Informed Consent",
 
     "ability to understand and willingness to sign informed consent": "Informed Consent",
-    "ability to understand the requirements of the study": "Informed Consent"
+    "ability to understand the requirements of the study": "Informed Consent",
+    "written informed consent": "Informed Consent",
+    "informed consent": "Informed Consent",
+
+    "ecog performance status": "ECOG Performance Status",
+    "eastern cooperative oncology group ecog performance status": "ECOG Performance Status",
+    "eastern cooperative oncology group performance status": "ECOG Performance Status",
+
+    "karnofsky score": "Karnofsky Performance Status",
+    "karnofsky performance": "Karnofsky Performance Status",
+
+    "platelet count": "Platelet Count",
+    "platelets": "Platelet Count",
+
+    "absolute neutrophil count": "Absolute Neutrophil Count",
+    "neutrophil count": "Absolute Neutrophil Count",
+    "anc": "Absolute Neutrophil Count",
+
+    "hemoglobin": "Hemoglobin",
+
+    "total bilirubin": "Total Bilirubin",
+    "bilirubin": "Total Bilirubin",
+
+    "alt(sgpt)": "Alanine Aminotransferase (ALT)",
+    "alanine aminotransferase": "Alanine Aminotransferase (ALT)",
+    "alanine aminotransferase alt": "Alanine Aminotransferase (ALT)",
+
+    "sgpt": "Alanine Aminotransferase (ALT)",
+
+    "ast": "Aspartate Aminotransferase (AST)",
+    "aspartate aminotransferase": "Aspartate Aminotransferase (AST)",
+
+    "lvef": "Left Ventricular Ejection Fraction",
+    "left ventricular ejection fraction": "Left Ventricular Ejection Fraction",
+    "left ventricular ejection fraction lvef": "Left Ventricular Ejection Fraction",
+
+    "life expectancy": "Life Expectancy",
+
+    "pregnancy test": "Pregnancy Test",
+    "negative pregnancy test": "Pregnancy Test",
+
+    "adequate contraception": "Contraception Requirement",
+    "effective double-method contraception": "Contraception Requirement",
+    
+    "age": "Age",
+    "life expectancy": "Life Expectancy",
+
+    "ecog status": "ECOG Performance Status",
+
+    "creatinine": "Serum Creatinine",
+    "serum creatinine": "Serum Creatinine",
+
+    "creatinine clearance": "Creatinine Clearance",
+
+    "neutrophil count": "Absolute Neutrophil Count",
+
+    "alt or ast": "ALT/AST",
+    "sgot and/or sgpt": "ALT/AST",
+
+    "serum pregnancy test": "Pregnancy Test",
+
+    "pregnancy or lactation": "Pregnancy/Lactation",
+    "pregnancy": "Pregnancy/Lactation",
+
+    "adequate contraception": "Contraception Requirement",
+    "contraception requirement": "Contraception Requirement",
+
+    "participation in concurrent study": "Concurrent Study Participation",
+    "participation in another clinical study": "Concurrent Study Participation"
 }

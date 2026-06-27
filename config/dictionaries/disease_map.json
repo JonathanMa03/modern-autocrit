@@ -29,5 +29,13 @@
 
     "hepatitis b": "Hepatitis B",
 
-    "hepatitis c": "Hepatitis C"
+    "hepatitis c": "Hepatitis C",
+    "hiv infection": "HIV Infection",
+    "hepatitis a infection": "Hepatitis A Infection",
+    "hepatitis b": "Hepatitis B Infection",
+    "hepatitis b infection": "Hepatitis B Infection",
+    "hepatitis c infection": "Hepatitis C Infection",
+
+    "colorectal cancer": "Colorectal Cancer",
+    "small bowel cancer": "Small Bowel Cancer"
 }

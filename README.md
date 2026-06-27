@@ -13,7 +13,7 @@ The goal is to refactor the original AutoCriteria-style pipeline into a cleaner,
 - Provide a standalone desktop application interface.
 - Support clinical trial eligibility criteria extraction from ClinicalTrials.gov records.
 - Add semantic deduplication for repeated or overlapping extracted criteria.
-- Add terminology normalization for mapping raw extracted terms to canonical concepts.
+- Add terminology normalization for mapping raw extracted terms to canonical concepts. Unmapped concepts get returned as well
 - Provide configurable settings for output paths, model selection, API key management, and dictionary mappings.
 
 ## Planned Features

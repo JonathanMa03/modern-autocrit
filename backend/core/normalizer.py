@@ -125,6 +125,41 @@ class CriteriaNormalizer:
             .drop_duplicates(subset=existing_cols)
             .reset_index(drop=True)
         )
+    
+    @staticmethod
+    def find_unmapped_terms(
+        df: pd.DataFrame,
+        min_count: int = 1,
+    ) -> pd.DataFrame:
+        """
+        Return extracted attributes that have not been changed by dictionary normalization.
+        """
+
+        required_cols = {
+            "attribute",
+            "canonical_attribute",
+            "attribute_key",
+            "canonical_attribute_key",
+        }
+
+        missing = required_cols - set(df.columns)
+
+        if missing:
+            raise ValueError(f"Missing required columns: {missing}")
+
+        unmapped = df[
+            df["attribute_key"].astype(str).str.strip() == df["canonical_attribute_key"].astype(str).str.strip()
+        ].copy()
+
+        counts = (
+            unmapped
+            .groupby(["attribute", "canonical_attribute", "attribute_key"])
+            .size()
+            .reset_index(name="count")
+            .sort_values("count", ascending=False)
+        )
+
+        return counts[counts["count"] >= min_count].reset_index(drop=True)
 
     @staticmethod
     def find_fuzzy_duplicates(
