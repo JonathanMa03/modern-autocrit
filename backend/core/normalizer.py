@@ -67,6 +67,57 @@ class CriteriaNormalizer:
             return self.disease_map[key]
 
         return attribute
+    
+    def normalize_value(
+        self,
+        attribute: str | None,
+        value: str | None,
+    ) -> str | None:
+        if value is None:
+            return None
+
+        value_clean = clean_attribute_key(value)
+        attribute_clean = clean_attribute_key(attribute)
+
+        if attribute_clean == "gender":
+            all_gender_values = {
+                "all",
+                "all genders",
+                "both",
+                "both sexes",
+                "both genders",
+                "male or female",
+                "female or male",
+                "male and female",
+                "female and male",
+                "men and women",
+                "women and men",
+                "males and females",
+                "females and males",
+            }
+
+            male_values = {
+                "male",
+                "males",
+                "men",
+            }
+
+            female_values = {
+                "female",
+                "females",
+                "women",
+            }
+
+            if value_clean in all_gender_values:
+                return "All"
+
+            if value_clean in male_values:
+                return "Male"
+
+            if value_clean in female_values:
+                return "Female"
+
+        return value
 
     def normalize_criterion(
         self,
@@ -79,11 +130,16 @@ class CriteriaNormalizer:
 
         row["canonical_entity"] = self.normalize_entity(row["entity"])
         row["canonical_attribute"] = self.normalize_attribute(row["attribute"])
+        row["canonical_value"] = self.normalize_value(
+            row["attribute"],
+            row["value"],
+        )
 
         row["attribute_key"] = clean_attribute_key(row["attribute"])
         row["canonical_attribute_key"] = clean_attribute_key(
             row["canonical_attribute"]
         )
+        row["canonical_value_key"] = clean_attribute_key(row["canonical_value"])
 
         return row
 
@@ -111,7 +167,7 @@ class CriteriaNormalizer:
             "criteria_type",
             "canonical_entity",
             "canonical_attribute_key",
-            "value",
+            "canonical_value_key",
             "modifier",
         ]
 
@@ -126,20 +182,20 @@ class CriteriaNormalizer:
             .reset_index(drop=True)
         )
     
-    @staticmethod
     def find_unmapped_terms(
-        df: pd.DataFrame,
-        min_count: int = 1,
+    self,
+    df: pd.DataFrame,
+    min_count: int = 1,
     ) -> pd.DataFrame:
         """
-        Return extracted attributes that have not been changed by dictionary normalization.
+        Return extracted attributes that are not covered by the attribute
+        or disease dictionaries.
         """
 
         required_cols = {
             "attribute",
             "canonical_attribute",
             "attribute_key",
-            "canonical_attribute_key",
         }
 
         missing = required_cols - set(df.columns)
@@ -147,8 +203,10 @@ class CriteriaNormalizer:
         if missing:
             raise ValueError(f"Missing required columns: {missing}")
 
+        mapped_keys = set(self.attribute_map.keys()) | set(self.disease_map.keys())
+
         unmapped = df[
-            df["attribute_key"].astype(str).str.strip() == df["canonical_attribute_key"].astype(str).str.strip()
+            ~df["attribute_key"].isin(mapped_keys)
         ].copy()
 
         counts = (

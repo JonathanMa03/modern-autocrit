@@ -27,7 +27,7 @@ The goal is to refactor the original AutoCriteria-style pipeline into a cleaner,
 - Settings window for configuration.
 - Analytics window for inspecting extracted results.
 - Export/download support for trial data and extracted output files.
-- Term Normalization and Data Download as seperate scripts
+- Data Download as seperate scripts
 
 ## Usage
 
@@ -38,4 +38,4 @@ Once everything is setup, run `python main.py`. Logged extraction is printed, an
 ...
 PipelineSummary(trials_processed=10, criteria_extracted=311, criteria_after_normalization=311, criteria_after_deduplication=303, output_file=PosixPath('outputs/modern_autocrit_output.xlsx'), total_cost_usd=0.01949175)
 ```
-Which should help with debugging, since it gives trials processed, how many criteria move through the pipeline, and the total cost.
+Which should help with debugging, since it gives trials processed, how many criteria move through the pipeline, and the total cost. unmapped terms during term normalization are outputted in a seperate file during logging, and gender was treated accordingly (combinatorially)

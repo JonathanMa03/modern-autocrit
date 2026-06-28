@@ -73,7 +73,7 @@
 
     "adequate contraception": "Contraception Requirement",
     "effective double-method contraception": "Contraception Requirement",
-    
+
     "age": "Age",
     "life expectancy": "Life Expectancy",
 
@@ -98,5 +98,15 @@
     "contraception requirement": "Contraception Requirement",
 
     "participation in concurrent study": "Concurrent Study Participation",
-    "participation in another clinical study": "Concurrent Study Participation"
+    "participation in another clinical study": "Concurrent Study Participation",
+
+  "prior lines of treatment": "Prior Lines of Treatment",
+  "brain metastases": "Brain Metastases",
+  "disease progression": "Disease Progression",
+  "ibrutinib administration": "Ibrutinib Administration",
+  "baseline oxygen saturation": "Baseline Oxygen Saturation",
+  "other malignancy": "Other Malignancy",
+  "prior systemic therapy": "Prior Systemic Therapy",
+  "measurable disease": "Measurable Disease",
+  "major surgery": "Major Surgery"
 }
