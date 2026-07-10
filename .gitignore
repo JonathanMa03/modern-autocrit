@@ -37,3 +37,9 @@ dist/
 
 # Jupyter
 .ipynb_checkpoints/
+
+docs/references/
+
+docs/notes/
+
+logs/
