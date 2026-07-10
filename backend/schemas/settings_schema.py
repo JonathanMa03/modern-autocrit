@@ -11,14 +11,13 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-
-class OpenAISettings(BaseModel):
-    """Configuration for OpenAI API usage."""
-
+class LLMSettings(BaseModel):
+    provider: str = "openai"
     api_key: str = ""
-    model: str = "gpt-5"
-    temperature: float = Field(default=0.0, ge=0.0, le=2.0)
-    max_output_tokens: int = 4096
+    model: str = "gpt-4o-mini"
+    base_url: str | None = None
+    temperature: float = 0.0
+    max_output_tokens: int = Field(default=4096, ge=1)
 
 
 class ExtractionSettings(BaseModel):
@@ -74,8 +73,8 @@ class AppSettings(BaseModel):
     config/default_settings.json.
     """
 
-    openai: OpenAISettings = OpenAISettings()
-
+    llm: LLMSettings = LLMSettings()
+    
     extraction: ExtractionSettings = ExtractionSettings()
 
     cost: CostSettings = CostSettings()

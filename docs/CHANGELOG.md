@@ -7,4 +7,6 @@
 - Frontend now working, added output files, QtCore for logging, and better run functionality
 
 ## 1.1.1 July 10, 2026
-- Fixed python 3.12 dependency conflict with logging, so now PySide is fixed (see requirements.txt)
+- Moved frontend to tkinter for stability
+- Moved openai_client as legacy code. multiple provider support framework is added, just need the api keys now
+- Loading now appears in a progress bar, it is defaulted at number of trials now but will be changed to actual progress once the project is near complete

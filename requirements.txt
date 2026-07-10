@@ -11,5 +11,4 @@ pyarrow
 tqdm
 rapidfuzz
 scikit-learn
-PySide6==6.10.3
 pytest

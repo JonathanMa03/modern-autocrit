@@ -1,125 +1,281 @@
 from __future__ import annotations
 
 import logging
+import queue
+import re
+import threading
+import tkinter as tk
 from pathlib import Path
-
-from PySide6.QtCore import QObject, QThread, Signal
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QHBoxLayout,
-    QLabel,
-    QMessageBox,
-    QPushButton,
-    QProgressBar,
-    QTextEdit,
-    QVBoxLayout,
-    QWidget,
-)
+from tkinter import filedialog, messagebox, ttk
+from tkinter.scrolledtext import ScrolledText
 
 from backend.api.app_state import AppState
-from frontend.workers.pipeline_worker import PipelineWorker
+from backend.api.routes import run_pipeline
 
 
-class LogEmitter(QObject):
-    message = Signal(str)
-
-
-class QtLogHandler(logging.Handler):
+class QueueLogHandler(logging.Handler):
     """
-    Sends Python logging records to a Qt signal.
+    Send Python log records into a thread-safe queue.
     """
 
-    def __init__(self, emitter: LogEmitter):
+    def __init__(self, log_queue: queue.Queue[str]) -> None:
         super().__init__()
-        self.emitter = emitter
+        self.log_queue = log_queue
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            message = self.format(record)
-            self.emitter.message.emit(message)
+            self.log_queue.put(self.format(record))
         except Exception:
             self.handleError(record)
 
 
-class RunView(QWidget):
-    def __init__(self, state: AppState):
-        super().__init__()
+class RunView(ttk.Frame):
+    """
+    Tkinter Run tab for launching the Modern AutoCrit pipeline.
+    """
+
+    TRIAL_FINISHED_PATTERN = re.compile(
+        r"\bNCT\d+\s+finished with\s+\d+\s+extracted criteria",
+        flags=re.IGNORECASE,
+    )
+
+    def __init__(
+        self,
+        parent: tk.Widget,
+        state: AppState,
+    ) -> None:
+        super().__init__(parent, padding=15)
 
         self.state = state
-        self.xml_directory: Path | None = None
-        self.output_file: Path | None = None
 
-        self.thread: QThread | None = None
-        self.worker: PipelineWorker | None = None
+        self.xml_directory = tk.StringVar()
+        self.output_file = tk.StringVar()
+        self.status_text = tk.StringVar(value="Ready")
+        self.progress_text = tk.StringVar(value="0%")
+        self.progress_value = tk.DoubleVar(value=0.0)
+
+        self.log_queue: queue.Queue[str] = queue.Queue()
+        self.result_queue: queue.Queue[dict] = queue.Queue()
+
+        self.pipeline_thread: threading.Thread | None = None
+
+        self.total_trials = 0
+        self.completed_trials = 0
+        self.logs_visible = False
 
         self._build_ui()
         self._configure_logging()
 
+        self.after(100, self._poll_queues)
+
     def _build_ui(self) -> None:
-        layout = QVBoxLayout(self)
+        self.columnconfigure(1, weight=1)
+        self.rowconfigure(7, weight=1)
 
-        layout.addWidget(QLabel("<h2>Run Modern AutoCrit</h2>"))
+        title = ttk.Label(
+            self,
+            text="Run Modern AutoCrit",
+            style="Section.TLabel",
+        )
+        title.grid(
+            row=0,
+            column=0,
+            columnspan=3,
+            sticky="w",
+            pady=(0, 15),
+        )
 
-        # XML input directory
-        xml_layout = QHBoxLayout()
+        # XML directory
+        ttk.Label(
+            self,
+            text="XML Folder",
+        ).grid(
+            row=1,
+            column=0,
+            sticky="w",
+            padx=(0, 10),
+            pady=5,
+        )
 
-        xml_button = QPushButton("Select XML Folder")
-        xml_button.clicked.connect(self.select_xml_folder)
+        self.xml_entry = ttk.Entry(
+            self,
+            textvariable=self.xml_directory,
+        )
+        self.xml_entry.grid(
+            row=1,
+            column=1,
+            sticky="ew",
+            pady=5,
+        )
 
-        self.xml_label = QLabel("No XML folder selected")
+        ttk.Button(
+            self,
+            text="Browse...",
+            command=self.select_xml_folder,
+        ).grid(
+            row=1,
+            column=2,
+            padx=(10, 0),
+            pady=5,
+        )
 
-        xml_layout.addWidget(xml_button)
-        xml_layout.addWidget(self.xml_label, stretch=1)
-        layout.addLayout(xml_layout)
+        # Output path
+        ttk.Label(
+            self,
+            text="Output Excel",
+        ).grid(
+            row=2,
+            column=0,
+            sticky="w",
+            padx=(0, 10),
+            pady=5,
+        )
 
-        # Output file
-        output_layout = QHBoxLayout()
+        self.output_entry = ttk.Entry(
+            self,
+            textvariable=self.output_file,
+        )
+        self.output_entry.grid(
+            row=2,
+            column=1,
+            sticky="ew",
+            pady=5,
+        )
 
-        output_button = QPushButton("Select Output File")
-        output_button.clicked.connect(self.select_output_file)
+        ttk.Button(
+            self,
+            text="Browse...",
+            command=self.select_output_file,
+        ).grid(
+            row=2,
+            column=2,
+            padx=(10, 0),
+            pady=5,
+        )
 
-        self.output_label = QLabel("No output file selected")
+        # Controls
+        controls = ttk.Frame(self)
+        controls.grid(
+            row=3,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            pady=(15, 10),
+        )
 
-        output_layout.addWidget(output_button)
-        output_layout.addWidget(self.output_label, stretch=1)
-        layout.addLayout(output_layout)
+        self.run_button = ttk.Button(
+            controls,
+            text="Run Pipeline",
+            command=self.start_pipeline,
+        )
+        self.run_button.pack(side="left")
 
-        # Run controls
-        controls = QHBoxLayout()
+        self.log_toggle_button = ttk.Button(
+            controls,
+            text="Show Logs",
+            command=self.toggle_logs,
+        )
+        self.log_toggle_button.pack(side="left", padx=(10, 0))
 
-        self.run_button = QPushButton("Run Extraction")
-        self.run_button.clicked.connect(self.start_pipeline)
+        self.clear_button = ttk.Button(
+            controls,
+            text="Clear Logs",
+            command=self.clear_log,
+        )
+        self.clear_button.pack(side="left", padx=(10, 0))
 
-        self.clear_button = QPushButton("Clear Log")
-        self.clear_button.clicked.connect(self.clear_log)
+        ttk.Label(
+            controls,
+            textvariable=self.status_text,
+        ).pack(side="right")
 
-        controls.addWidget(self.run_button)
-        controls.addWidget(self.clear_button)
-        controls.addStretch()
+        # Progress bar and percentage
+        progress_frame = ttk.Frame(self)
+        progress_frame.grid(
+            row=4,
+            column=0,
+            columnspan=3,
+            sticky="ew",
+            pady=(0, 10),
+        )
+        progress_frame.columnconfigure(0, weight=1)
 
-        layout.addLayout(controls)
+        self.progress = ttk.Progressbar(
+            progress_frame,
+            mode="determinate",
+            maximum=100,
+            variable=self.progress_value,
+        )
+        self.progress.grid(
+            row=0,
+            column=0,
+            sticky="ew",
+        )
 
-        # Indeterminate progress bar while running
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 1)
-        self.progress.setValue(0)
-        self.progress.setVisible(False)
-        layout.addWidget(self.progress)
+        ttk.Label(
+            progress_frame,
+            textvariable=self.progress_text,
+            width=6,
+            anchor="e",
+        ).grid(
+            row=0,
+            column=1,
+            padx=(10, 0),
+        )
 
-        self.status_label = QLabel("Ready")
-        layout.addWidget(self.status_label)
+        self.progress_detail = ttk.Label(
+            self,
+            text="No pipeline is running.",
+        )
+        self.progress_detail.grid(
+            row=5,
+            column=0,
+            columnspan=3,
+            sticky="w",
+            pady=(0, 10),
+        )
 
-        # Live log console
-        self.console = QTextEdit()
-        self.console.setReadOnly(True)
-        self.console.setLineWrapMode(QTextEdit.NoWrap)
-        layout.addWidget(self.console)
+        # Log section
+        self.log_frame = ttk.Frame(self)
+        self.log_frame.grid(
+            row=6,
+            column=0,
+            columnspan=3,
+            rowspan=2,
+            sticky="nsew",
+        )
+        self.log_frame.columnconfigure(0, weight=1)
+        self.log_frame.rowconfigure(1, weight=1)
+
+        ttk.Label(
+            self.log_frame,
+            text="Live Logs",
+            style="Section.TLabel",
+        ).grid(
+            row=0,
+            column=0,
+            sticky="w",
+            pady=(5, 5),
+        )
+
+        self.console = ScrolledText(
+            self.log_frame,
+            wrap="none",
+            height=24,
+            state="disabled",
+            font=("Menlo", 11),
+        )
+        self.console.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+        )
+
+        # Hidden by default.
+        self.log_frame.grid_remove()
 
     def _configure_logging(self) -> None:
-        self.log_emitter = LogEmitter()
-        self.log_emitter.message.connect(self.append_log)
-
-        self.log_handler = QtLogHandler(self.log_emitter)
+        self.log_handler = QueueLogHandler(self.log_queue)
         self.log_handler.setLevel(logging.INFO)
         self.log_handler.setFormatter(
             logging.Formatter(
@@ -130,96 +286,213 @@ class RunView(QWidget):
 
         root_logger = logging.getLogger()
 
-        # Prevent duplicate GUI handlers if the view is reconstructed.
         for handler in list(root_logger.handlers):
-            if isinstance(handler, QtLogHandler):
+            if isinstance(handler, QueueLogHandler):
                 root_logger.removeHandler(handler)
 
         root_logger.addHandler(self.log_handler)
         root_logger.setLevel(logging.INFO)
 
     def select_xml_folder(self) -> None:
-        folder = QFileDialog.getExistingDirectory(
-            self,
-            "Select ClinicalTrials.gov XML Folder",
+        folder = filedialog.askdirectory(
+            title="Select ClinicalTrials.gov XML Folder",
         )
 
         if folder:
-            self.xml_directory = Path(folder)
-            self.xml_label.setText(folder)
+            self.xml_directory.set(folder)
+
+            count = self._count_xml_files(Path(folder))
+            self.progress_detail.configure(
+                text=f"{count} XML trial file(s) detected."
+            )
 
     def select_output_file(self) -> None:
-        filename, _ = QFileDialog.getSaveFileName(
-            self,
-            "Select Output Excel File",
-            "modern_autocrit_output.xlsx",
-            "Excel files (*.xlsx)",
+        filename = filedialog.asksaveasfilename(
+            title="Select Output Excel File",
+            defaultextension=".xlsx",
+            filetypes=[
+                ("Excel files", "*.xlsx"),
+            ],
+            initialfile="modern_autocrit_output.xlsx",
         )
 
         if filename:
-            path = Path(filename)
+            self.output_file.set(filename)
 
-            if path.suffix.lower() != ".xlsx":
-                path = path.with_suffix(".xlsx")
+    @staticmethod
+    def _count_xml_files(xml_directory: Path) -> int:
+        """
+        Count XML files recursively so nested trial folders are supported.
+        """
+        if not xml_directory.exists():
+            return 0
 
-            self.output_file = path
-            self.output_label.setText(str(path))
-
-    def start_pipeline(self) -> None:
-        if self.xml_directory is None:
-            QMessageBox.warning(
-                self,
-                "Missing XML Folder",
-                "Select an XML input folder before running extraction.",
-            )
-            return
-
-        if self.output_file is None:
-            QMessageBox.warning(
-                self,
-                "Missing Output File",
-                "Select an output Excel file before running extraction.",
-            )
-            return
-
-        if self.thread is not None and self.thread.isRunning():
-            return
-
-        self.console.clear()
-        self.append_log("Starting Modern AutoCrit pipeline…")
-
-        self.run_button.setEnabled(False)
-        self.progress.setVisible(True)
-        self.progress.setRange(0, 0)  # Indeterminate animation
-        self.status_label.setText("Running extraction…")
-
-        self.thread = QThread(self)
-
-        self.worker = PipelineWorker(
-            state=self.state,
-            xml_directory=self.xml_directory,
-            output_file=self.output_file,
+        return sum(
+            1
+            for path in xml_directory.rglob("*.xml")
+            if path.is_file()
         )
 
-        self.worker.moveToThread(self.thread)
+    def start_pipeline(self) -> None:
+        xml_directory_text = self.xml_directory.get().strip()
+        output_file_text = self.output_file.get().strip()
 
-        self.thread.started.connect(self.worker.run)
+        if not xml_directory_text:
+            messagebox.showwarning(
+                "Missing XML Folder",
+                "Select an XML input folder.",
+            )
+            return
 
-        self.worker.finished.connect(self.pipeline_finished)
-        self.worker.failed.connect(self.pipeline_failed)
+        if not output_file_text:
+            messagebox.showwarning(
+                "Missing Output File",
+                "Select an output Excel file.",
+            )
+            return
 
-        self.worker.finished.connect(self.thread.quit)
-        self.worker.failed.connect(self.thread.quit)
+        xml_directory = Path(xml_directory_text)
+        output_file = Path(output_file_text)
 
-        self.worker.finished.connect(self.worker.deleteLater)
-        self.worker.failed.connect(self.worker.deleteLater)
+        if not xml_directory.exists():
+            messagebox.showerror(
+                "Invalid XML Folder",
+                "The selected XML folder does not exist.",
+            )
+            return
 
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.finished.connect(self._clear_worker_references)
+        self.total_trials = self._count_xml_files(xml_directory)
 
-        self.thread.start()
+        if self.total_trials == 0:
+            messagebox.showwarning(
+                "No XML Files",
+                "No XML files were found in the selected folder.",
+            )
+            return
 
-    def pipeline_finished(self, summary: object) -> None:
+        if self.pipeline_thread and self.pipeline_thread.is_alive():
+            return
+
+        self.completed_trials = 0
+        self.progress_value.set(0)
+        self.progress_text.set("0%")
+        self.progress_detail.configure(
+            text=f"Processing 0 of {self.total_trials} trials."
+        )
+
+        self.clear_log()
+        self.append_log("Starting Modern AutoCrit pipeline...")
+
+        self.status_text.set("Running")
+        self.run_button.configure(state="disabled")
+
+        self.pipeline_thread = threading.Thread(
+            target=self._run_pipeline_worker,
+            args=(xml_directory, output_file),
+            daemon=True,
+        )
+        self.pipeline_thread.start()
+
+    def _run_pipeline_worker(
+        self,
+        xml_directory: Path,
+        output_file: Path,
+    ) -> None:
+        try:
+            summary = run_pipeline(
+                state=self.state,
+                xml_directory=xml_directory,
+                output_excel=output_file,
+            )
+
+            self.result_queue.put(
+                {
+                    "status": "success",
+                    "summary": summary,
+                }
+            )
+
+        except Exception as exc:
+            logging.getLogger(__name__).exception(
+                "Pipeline failed."
+            )
+
+            self.result_queue.put(
+                {
+                    "status": "error",
+                    "error": str(exc),
+                }
+            )
+
+    def _poll_queues(self) -> None:
+        self._poll_log_queue()
+        self._poll_result_queue()
+
+        self.after(100, self._poll_queues)
+
+    def _poll_log_queue(self) -> None:
+        while True:
+            try:
+                message = self.log_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            self.append_log(message)
+            self._update_progress_from_log(message)
+
+    def _update_progress_from_log(self, message: str) -> None:
+        """
+        Update percentage when the pipeline logs that a trial finished.
+
+        Example expected log:
+        NCT00114192 finished with 35 extracted criteria.
+        """
+        if not self.TRIAL_FINISHED_PATTERN.search(message):
+            return
+
+        self.completed_trials = min(
+            self.completed_trials + 1,
+            self.total_trials,
+        )
+
+        percentage = (
+            self.completed_trials / self.total_trials
+        ) * 100
+
+        self.progress_value.set(percentage)
+        self.progress_text.set(f"{percentage:.0f}%")
+        self.progress_detail.configure(
+            text=(
+                f"Processing {self.completed_trials} "
+                f"of {self.total_trials} trials."
+            )
+        )
+
+    def _poll_result_queue(self) -> None:
+        while True:
+            try:
+                result = self.result_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            if result["status"] == "success":
+                self._handle_success(result["summary"])
+            else:
+                self._handle_error(result["error"])
+
+    def _handle_success(self, summary) -> None:
+        self.progress_value.set(100)
+        self.progress_text.set("100%")
+        self.progress_detail.configure(
+            text=(
+                f"Completed {summary.trials_processed} "
+                "trial(s)."
+            )
+        )
+
+        self.run_button.configure(state="normal")
+        self.status_text.set("Completed")
+
         self.append_log("")
         self.append_log("Pipeline finished successfully.")
         self.append_log(
@@ -240,54 +513,54 @@ class RunView(QWidget):
             f"Estimated cost: ${summary.total_cost_usd:.6f}"
         )
         self.append_log(
-            f"Output: {summary.output_file}"
+            f"Output file: {summary.output_file}"
         )
 
-        self.status_label.setText("Completed")
-        self._set_idle_state()
+        messagebox.showinfo(
+            "Pipeline Complete",
+            "Modern AutoCrit finished successfully.",
+        )
 
-    def pipeline_failed(self, error_message: str) -> None:
+    def _handle_error(self, error_message: str) -> None:
+        self.run_button.configure(state="normal")
+        self.status_text.set("Failed")
+
+        self.progress_detail.configure(
+            text=(
+                f"Stopped after {self.completed_trials} "
+                f"of {self.total_trials} trials."
+            )
+        )
+
         self.append_log("")
         self.append_log(f"Pipeline failed: {error_message}")
 
-        self.status_label.setText("Failed")
-        self._set_idle_state()
-
-        QMessageBox.critical(
-            self,
+        messagebox.showerror(
             "Pipeline Failed",
             error_message,
         )
 
-    def _set_idle_state(self) -> None:
-        self.run_button.setEnabled(True)
-        self.progress.setRange(0, 1)
-        self.progress.setValue(0)
-        self.progress.setVisible(False)
-
-    def _clear_worker_references(self) -> None:
-        self.thread = None
-        self.worker = None
+    def toggle_logs(self) -> None:
+        if self.logs_visible:
+            self.log_frame.grid_remove()
+            self.log_toggle_button.configure(text="Show Logs")
+            self.logs_visible = False
+        else:
+            self.log_frame.grid()
+            self.log_toggle_button.configure(text="Hide Logs")
+            self.logs_visible = True
 
     def append_log(self, message: str) -> None:
-        self.console.append(message)
-
-        scrollbar = self.console.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        self.console.configure(state="normal")
+        self.console.insert("end", message + "\n")
+        self.console.see("end")
+        self.console.configure(state="disabled")
 
     def clear_log(self) -> None:
-        self.console.clear()
+        self.console.configure(state="normal")
+        self.console.delete("1.0", "end")
+        self.console.configure(state="disabled")
 
-    def closeEvent(self, event) -> None:
+    def destroy(self) -> None:
         logging.getLogger().removeHandler(self.log_handler)
-
-        if self.thread is not None and self.thread.isRunning():
-            event.ignore()
-            QMessageBox.warning(
-                self,
-                "Pipeline Running",
-                "Wait for the current extraction to finish before closing.",
-            )
-            return
-
-        event.accept()
+        super().destroy()

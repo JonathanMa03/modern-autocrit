@@ -13,12 +13,13 @@ from pathlib import Path
 from backend.core.parser import parse_extraction_response
 from backend.core.prompts import build_extraction_prompt
 from backend.schemas.criteria_schema import EligibilityCriterion
-from backend.schemas.settings_schema import ExtractionSettings, OpenAISettings
+from backend.schemas.settings_schema import ExtractionSettings, LLMSettings
 from backend.services.clinicaltrials_service import ClinicalTrialsService
 from backend.services.cost_monitor import CostMonitor
-from backend.services.openai_client import OpenAIClient
+from backend.services.llm.factory import create_llm_provider
 from backend.utils.logging_utils import get_logger
 from backend.utils.text_utils import chunk_text_by_words
+from backend.services.llm.factory import create_llm_provider
 
 
 logger = get_logger(__name__)
@@ -38,16 +39,16 @@ class ModernAutoCritExtractor:
 
     def __init__(
         self,
-        openai_settings: OpenAISettings | None = None,
+        llm_settings: LLMSettings | None = None,
         extraction_settings: ExtractionSettings | None = None,
         cost_monitor: CostMonitor | None = None,
     ):
-        self.openai_settings = openai_settings or OpenAISettings()
+        self.llm_settings = llm_settings or LLMSettings()
         self.extraction_settings = extraction_settings or ExtractionSettings()
         self.cost_monitor = cost_monitor or CostMonitor()
 
-        self.client = OpenAIClient(
-            settings=self.openai_settings,
+        self.provider = create_llm_provider(
+            settings=self.llm_settings,
             cost_monitor=self.cost_monitor,
         )
 
@@ -97,12 +98,15 @@ class ModernAutoCritExtractor:
                 disease_context=disease_context,
             )
 
-            response_text = self.client.generate_json(
-                prompt=prompt,
-                model=self.openai_settings.model,
-                temperature=self.openai_settings.temperature,
-                max_output_tokens=self.openai_settings.max_output_tokens,
+            response = self.provider.generate(
+                prompt,
+                model=self.llm_settings.model,
+                temperature=self.llm_settings.temperature,
+                max_output_tokens=self.llm_settings.max_output_tokens,
             )
+
+            response_text = response.text
+
 
             # logger.info(
             #     "Raw model response for %s %s chunk %d:\n%s",

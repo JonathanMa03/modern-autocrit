@@ -21,7 +21,7 @@ def run_pipeline(
     output_excel: str | Path,
 ):
     extractor = ModernAutoCritExtractor(
-        openai_settings=state.settings.openai,
+        llm_settings=state.settings.llm,
         extraction_settings=state.settings.extraction,
         cost_monitor=state.cost_monitor,
     )

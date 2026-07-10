@@ -1,7 +1,3 @@
-"""
-Application entry point for Modern AutoCrit.
-"""
-
 from frontend.app import launch_app
 
 
