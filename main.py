@@ -1,14 +1,11 @@
-import os
-from PySide6.QtCore import QLibraryInfo
-
-os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.path(
-    QLibraryInfo.PluginsPath
-)
+"""
+Application entry point for Modern AutoCrit.
+"""
 
 from frontend.app import launch_app
 
 
-def main():
+def main() -> None:
     launch_app()
 
 
