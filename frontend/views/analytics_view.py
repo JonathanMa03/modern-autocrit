@@ -45,6 +45,14 @@ class AnalyticsView(ttk.Frame):
         self.normalized_var = tk.StringVar(value="—")
         self.deduplicated_var = tk.StringVar(value="—")
         self.cost_var = tk.StringVar(value="—")
+        self.anomaly_total_var = tk.StringVar(value="—")
+        self.anomaly_high_var = tk.StringVar(value="—")
+        self.anomaly_warning_var = tk.StringVar(value="—")
+        self.anomaly_info_var = tk.StringVar(value="—")
+        self.numeric_anomaly_var = tk.StringVar(value="—")
+        self.unit_anomaly_var = tk.StringVar(value="—")
+        self.terminology_anomaly_var = tk.StringVar(value="—")
+        self.missing_value_anomaly_var = tk.StringVar(value="—")
 
         self._build_ui()
 
@@ -139,6 +147,16 @@ class AnalyticsView(ttk.Frame):
             padx=(10, 0),
         )
 
+        ttk.Button(
+            file_frame,
+            text="Open Anomaly Report",
+            command=self.open_anomalies_file,
+        ).grid(
+            row=0,
+            column=6,
+            padx=(10, 0),
+        )
+
         # -------------------------------------------------
         # Summary cards
         # -------------------------------------------------
@@ -192,6 +210,52 @@ class AnalyticsView(ttk.Frame):
             variable=self.cost_var,
         )
 
+        quality_frame = ttk.LabelFrame(
+            self,
+            text="Quality Review",
+            padding=12,
+        )
+        quality_frame.grid(
+            row=3,
+            column=0,
+            sticky="ew",
+            pady=(0, 12),
+        )
+
+        for column in range(4):
+            quality_frame.columnconfigure(
+                column,
+                weight=1,
+            )
+
+        self._create_summary_card(
+            quality_frame,
+            column=0,
+            label="Total Flags",
+            variable=self.anomaly_total_var,
+        )
+
+        self._create_summary_card(
+            quality_frame,
+            column=1,
+            label="High Severity",
+            variable=self.anomaly_high_var,
+        )
+
+        self._create_summary_card(
+            quality_frame,
+            column=2,
+            label="Warnings",
+            variable=self.anomaly_warning_var,
+        )
+
+        self._create_summary_card(
+            quality_frame,
+            column=3,
+            label="Info",
+            variable=self.anomaly_info_var,
+        )
+
         # -------------------------------------------------
         # Preview tabs
         # -------------------------------------------------
@@ -210,6 +274,10 @@ class AnalyticsView(ttk.Frame):
             preview_notebook,
         )
 
+        self.anomalies_preview_tab = ttk.Frame(
+            preview_notebook,
+        )
+
         preview_notebook.add(
             self.output_preview_tab,
             text="Output Preview",
@@ -219,11 +287,20 @@ class AnalyticsView(ttk.Frame):
             text="Unmapped Terms",
         )
 
+        preview_notebook.add(
+            self.anomalies_preview_tab,
+            text="Anomaly Flags",
+        )
+
         self.output_tree = self._create_table(
             self.output_preview_tab,
         )
         self.unmapped_tree = self._create_table(
             self.unmapped_preview_tab,
+        )
+
+        self.anomalies_tree = self._create_table(
+            self.anomalies_preview_tab,
         )
 
         ttk.Label(
@@ -401,6 +478,28 @@ class AnalyticsView(ttk.Frame):
             f"Loaded {len(output_df)} preview row(s) from {output_path.name}."
         )
 
+        anomalies_path = self._get_anomalies_path(
+            output_path
+        )
+
+        if anomalies_path.exists():
+            try:
+                anomalies_df = pd.read_excel(
+                    anomalies_path
+                ).head(100)
+            except Exception as exc:
+                self.status_var.set(
+                    f"Output loaded, but anomaly report failed: {exc}"
+                )
+                anomalies_df = pd.DataFrame()
+        else:
+            anomalies_df = pd.DataFrame()
+
+        self._load_dataframe_into_tree(
+            anomalies_df,
+            self.anomalies_tree,
+        )
+
     def _resolve_output_path(
         self,
     ) -> Path | None:
@@ -423,6 +522,15 @@ class AnalyticsView(ttk.Frame):
         return output_path.with_name(
             output_path.stem
             + "_unmapped_terms.xlsx"
+        )
+    
+    @staticmethod
+    def _get_anomalies_path(
+        output_path: Path,
+    ) -> Path:
+        return output_path.with_name(
+            output_path.stem
+            + "_anomalies.xlsx"
         )
 
     def _refresh_summary_from_state(
@@ -451,6 +559,18 @@ class AnalyticsView(ttk.Frame):
             self.cost_var.set(
                 f"${summary.total_cost_usd:.4f}"
             )
+            self.anomaly_total_var.set(
+                str(summary.anomaly_findings)
+            )
+            self.anomaly_high_var.set(
+                str(summary.anomaly_high)
+            )
+            self.anomaly_warning_var.set(
+                str(summary.anomaly_warnings)
+            )
+            self.anomaly_info_var.set(
+                str(summary.anomaly_info)
+            )
             return
 
         # Fallback for manually loaded files.
@@ -470,6 +590,51 @@ class AnalyticsView(ttk.Frame):
         self.normalized_var.set(str(row_count))
         self.deduplicated_var.set(str(row_count))
         self.cost_var.set("—")
+
+        output_path = self._resolve_output_path()
+
+        if output_path is not None:
+            anomaly_path = self._get_anomalies_path(
+                output_path
+            )
+
+            if anomaly_path.exists():
+                try:
+                    anomaly_df = pd.read_excel(
+                        anomaly_path
+                    )
+
+                    severity_counts = (
+                        anomaly_df["severity"]
+                        .value_counts()
+                        .to_dict()
+                        if not anomaly_df.empty
+                        else {}
+                    )
+
+                    self.anomaly_total_var.set(
+                        str(len(anomaly_df))
+                    )
+                    self.anomaly_high_var.set(
+                        str(severity_counts.get("high", 0))
+                    )
+                    self.anomaly_warning_var.set(
+                        str(severity_counts.get("warning", 0))
+                    )
+                    self.anomaly_info_var.set(
+                        str(severity_counts.get("info", 0))
+                    )
+
+                except Exception:
+                    self._clear_anomaly_summary()
+            else:
+                self._clear_anomaly_summary()
+            
+            def _clear_anomaly_summary(self) -> None:
+                self.anomaly_total_var.set("—")
+                self.anomaly_high_var.set("—")
+                self.anomaly_warning_var.set("—")
+                self.anomaly_info_var.set("—")
 
     def _load_dataframe_into_tree(
         self,
@@ -555,6 +720,29 @@ class AnalyticsView(ttk.Frame):
             return
 
         self._open_path(unmapped_path)
+    
+    def open_anomalies_file(self) -> None:
+        output_path = self._resolve_output_path()
+
+        if output_path is None:
+            messagebox.showwarning(
+                "No Output File",
+                "No output file is available.",
+            )
+            return
+
+        anomalies_path = self._get_anomalies_path(
+            output_path
+        )
+
+        if not anomalies_path.exists():
+            messagebox.showwarning(
+                "No Anomaly Report",
+                "No anomaly report was found.",
+            )
+            return
+
+        self._open_path(anomalies_path)
 
     @staticmethod
     def _open_path(path: Path) -> None:

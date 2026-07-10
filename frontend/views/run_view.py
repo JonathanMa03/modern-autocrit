@@ -513,6 +513,23 @@ class RunView(ttk.Frame):
             f"Estimated cost: ${summary.total_cost_usd:.6f}"
         )
         self.append_log(
+            f"Anomaly findings: {summary.anomaly_findings}"
+        )
+        self.append_log(
+            f"High-severity anomalies: {summary.anomaly_high}"
+        )
+        self.append_log(
+            f"Warnings: {summary.anomaly_warnings}"
+        )
+        self.append_log(
+            f"Informational flags: {summary.anomaly_info}"
+        )
+
+        if summary.anomalies_file is not None:
+            self.append_log(
+                f"Anomaly report: {summary.anomalies_file}"
+            )
+        self.append_log(
             f"Output file: {summary.output_file}"
         )
 
