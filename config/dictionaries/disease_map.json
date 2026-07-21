@@ -1,23 +1,46 @@
 {
-    "chronic lymphocytic leukemia": "Chronic Lymphocytic Leukemia",
-    "cll": "Chronic Lymphocytic Leukemia",
-    "colorectal cancer": "Colorectal Cancer",
-    "crc": "Colorectal Cancer",
-    "gastroesophageal junction cancer": "Gastroesophageal Junction Cancer",
-    "gej cancer": "Gastroesophageal Junction Cancer",
-    "hcc": "Hepatocellular Carcinoma",
-    "hepatitis a infection": "Hepatitis A Infection",
-    "hepatitis b": "Hepatitis B Infection",
-    "hepatitis b infection": "Hepatitis B Infection",
-    "hepatitis c": "Hepatitis C Infection",
-    "hepatitis c infection": "Hepatitis C Infection",
-    "hepatocellular carcinoma": "Hepatocellular Carcinoma",
-    "hiv": "HIV Infection",
-    "hiv infection": "HIV Infection",
-    "non small cell lung cancer": "Non-Small Cell Lung Cancer",
-    "non-small cell lung cancer": "Non-Small Cell Lung Cancer",
-    "nsclc": "Non-Small Cell Lung Cancer",
-    "sll": "Small Lymphocytic Lymphoma",
-    "small bowel cancer": "Small Bowel Cancer",
-    "small lymphocytic lymphoma": "Small Lymphocytic Lymphoma"
+  "chronic lymphocytic leukemia": "Chronic Lymphocytic Leukemia",
+  "cll": "Chronic Lymphocytic Leukemia",
+
+  "colorectal cancer": "Colorectal Cancer",
+  "crc": "Colorectal Cancer",
+
+  "gastroesophageal junction cancer": "Gastroesophageal Junction Cancer",
+  "gastroesophageal junction carcinoma": "Gastroesophageal Junction Cancer",
+  "gej cancer": "Gastroesophageal Junction Cancer",
+  "gej carcinoma": "Gastroesophageal Junction Cancer",
+
+  "hepatocellular carcinoma": "Hepatocellular Carcinoma",
+  "hcc": "Hepatocellular Carcinoma",
+
+  "hepatitis a": "Hepatitis A Infection",
+  "hepatitis a infection": "Hepatitis A Infection",
+  "hav": "Hepatitis A Infection",
+
+  "hepatitis b": "Hepatitis B Infection",
+  "hepatitis b infection": "Hepatitis B Infection",
+  "hbv": "Hepatitis B Infection",
+  "hbv infection": "Hepatitis B Infection",
+
+  "hepatitis c": "Hepatitis C Infection",
+  "hepatitis c infection": "Hepatitis C Infection",
+  "hcv": "Hepatitis C Infection",
+  "hcv infection": "Hepatitis C Infection",
+
+  "hiv": "HIV Infection",
+  "hiv infection": "HIV Infection",
+  "human immunodeficiency virus": "HIV Infection",
+  "human immunodeficiency virus infection": "HIV Infection",
+
+  "non small cell lung cancer": "Non-Small Cell Lung Cancer",
+  "non-small-cell lung cancer": "Non-Small Cell Lung Cancer",
+  "non-small cell lung cancer": "Non-Small Cell Lung Cancer",
+  "nsclc": "Non-Small Cell Lung Cancer",
+
+  "small bowel cancer": "Small Bowel Cancer",
+  "small bowel carcinoma": "Small Bowel Cancer",
+  "small intestinal cancer": "Small Bowel Cancer",
+
+  "small lymphocytic lymphoma": "Small Lymphocytic Lymphoma",
+  "sll": "Small Lymphocytic Lymphoma"
 }

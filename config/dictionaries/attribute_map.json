@@ -1,112 +1,64 @@
 {
-    "alt": "Alanine aminotransferase (ALT)",
-    "alanine aminotransferase": "Alanine aminotransferase (ALT)",
-    "alt(sgpt)": "Alanine aminotransferase (ALT)",
-
-    "ast": "Aspartate aminotransferase (AST)",
-    "aspartate aminotransferase": "Aspartate aminotransferase (AST)",
-
-    "ecog": "ECOG Performance Status",
-    "eastern cooperative oncology group performance status": "ECOG Performance Status",
-
-    "lvef": "Left Ventricular Ejection Fraction",
-    "left ventricular ejection fraction": "Left Ventricular Ejection Fraction",
-
-    "bilirubin": "Total Bilirubin",
-    "total bilirubin": "Total Bilirubin",
-
-    "serum creatinine": "Serum Creatinine",
-
-    "platelets": "Platelet Count",
-    "platelet count": "Platelet Count",
-
-    "hemoglobin": "Hemoglobin",
-
-    "absolute neutrophil count": "Absolute Neutrophil Count",
-    "anc": "Absolute Neutrophil Count",
-
-    "pregnancy test": "Pregnancy Test",
-
-    "consent": "Informed Consent",
-
-    "ability to understand and willingness to sign informed consent": "Informed Consent",
-    "ability to understand the requirements of the study": "Informed Consent",
-    "written informed consent": "Informed Consent",
-    "informed consent": "Informed Consent",
-
-    "ecog performance status": "ECOG Performance Status",
-    "eastern cooperative oncology group ecog performance status": "ECOG Performance Status",
-    "eastern cooperative oncology group performance status": "ECOG Performance Status",
-
-    "karnofsky score": "Karnofsky Performance Status",
-    "karnofsky performance": "Karnofsky Performance Status",
-
-    "platelet count": "Platelet Count",
-    "platelets": "Platelet Count",
-
-    "absolute neutrophil count": "Absolute Neutrophil Count",
-    "neutrophil count": "Absolute Neutrophil Count",
-    "anc": "Absolute Neutrophil Count",
-
-    "hemoglobin": "Hemoglobin",
-
-    "total bilirubin": "Total Bilirubin",
-    "bilirubin": "Total Bilirubin",
-
-    "alt(sgpt)": "Alanine Aminotransferase (ALT)",
-    "alanine aminotransferase": "Alanine Aminotransferase (ALT)",
-    "alanine aminotransferase alt": "Alanine Aminotransferase (ALT)",
-
-    "sgpt": "Alanine Aminotransferase (ALT)",
-
-    "ast": "Aspartate Aminotransferase (AST)",
-    "aspartate aminotransferase": "Aspartate Aminotransferase (AST)",
-
-    "lvef": "Left Ventricular Ejection Fraction",
-    "left ventricular ejection fraction": "Left Ventricular Ejection Fraction",
-    "left ventricular ejection fraction lvef": "Left Ventricular Ejection Fraction",
-
-    "life expectancy": "Life Expectancy",
-
-    "pregnancy test": "Pregnancy Test",
-    "negative pregnancy test": "Pregnancy Test",
-
-    "adequate contraception": "Contraception Requirement",
-    "effective double-method contraception": "Contraception Requirement",
-
-    "age": "Age",
-    "life expectancy": "Life Expectancy",
-
-    "ecog status": "ECOG Performance Status",
-
-    "creatinine": "Serum Creatinine",
-    "serum creatinine": "Serum Creatinine",
-
-    "creatinine clearance": "Creatinine Clearance",
-
-    "neutrophil count": "Absolute Neutrophil Count",
-
-    "alt or ast": "ALT/AST",
-    "sgot and/or sgpt": "ALT/AST",
-
-    "serum pregnancy test": "Pregnancy Test",
-
-    "pregnancy or lactation": "Pregnancy/Lactation",
-    "pregnancy": "Pregnancy/Lactation",
-
-    "adequate contraception": "Contraception Requirement",
-    "contraception requirement": "Contraception Requirement",
-
-    "participation in concurrent study": "Concurrent Study Participation",
-    "participation in another clinical study": "Concurrent Study Participation",
-
-  "prior lines of treatment": "Prior Lines of Treatment",
-  "brain metastases": "Brain Metastases",
-  "disease progression": "Disease Progression",
-  "ibrutinib administration": "Ibrutinib Administration",
+  "absolute neutrophil count": "Absolute Neutrophil Count",
+  "adequate contraception": "Contraception Requirement",
+  "age": "Age",
+  "alanine aminotransferase": "Alanine Aminotransferase (ALT)",
+  "alanine aminotransferase alt": "Alanine Aminotransferase (ALT)",
+  "alt": "Alanine Aminotransferase (ALT)",
+  "alt or ast": "ALT/AST",
+  "alt(sgpt)": "Alanine Aminotransferase (ALT)",
+  "anc": "Absolute Neutrophil Count",
+  "aspartate aminotransferase": "Aspartate Aminotransferase (AST)",
+  "ast": "Aspartate Aminotransferase (AST)",
   "baseline oxygen saturation": "Baseline Oxygen Saturation",
-  "other malignancy": "Other Malignancy",
-  "prior systemic therapy": "Prior Systemic Therapy",
+  "bilirubin": "Total Bilirubin",
+  "brain metastases": "Brain Metastases",
+  "consent": "Informed Consent",
+  "contraception requirement": "Contraception Requirement",
+  "creatinine": "Serum Creatinine",
+  "creatinine clearance": "Creatinine Clearance",
+  "disease progression": "Disease Progression",
+  "eastern cooperative oncology group ecog performance status": "ECOG Performance Status",
+  "eastern cooperative oncology group performance status": "ECOG Performance Status",
+  "ecog": "ECOG Performance Status",
+  "ecog performance status": "ECOG Performance Status",
+  "ecog status": "ECOG Performance Status",
+  "effective double-method contraception": "Contraception Requirement",
+  "hemoglobin": "Hemoglobin",
+  "ibrutinib administration": "Ibrutinib Administration",
+  "informed consent": "Informed Consent",
+  "karnofsky performance": "Karnofsky Performance Status",
+  "karnofsky performance status": "Karnofsky Performance Status",
+  "karnofsky score": "Karnofsky Performance Status",
+  "left ventricular ejection fraction": "Left Ventricular Ejection Fraction",
+  "left ventricular ejection fraction lvef": "Left Ventricular Ejection Fraction",
+  "life expectancy": "Life Expectancy",
+  "lvef": "Left Ventricular Ejection Fraction",
+  "major surgery": "Major Surgery",
   "measurable disease": "Measurable Disease",
-  "major surgery": "Major Surgery"
+  "negative pregnancy test": "Pregnancy Test",
+  "neutrophil count": "Absolute Neutrophil Count",
+  "other malignancy": "Other Malignancy",
+  "participation in another clinical study": "Concurrent Study Participation",
+  "participation in concurrent study": "Concurrent Study Participation",
+  "platelet count": "Platelet Count",
+  "platelets": "Platelet Count",
+  "pregnancy": "Pregnancy/Lactation",
+  "pregnancy or lactation": "Pregnancy/Lactation",
+  "pregnancy test": "Pregnancy Test",
+  "prior lines of treatment": "Prior Lines of Treatment",
+  "prior systemic therapy": "Prior Systemic Therapy",
+  "serum creatinine": "Serum Creatinine",
+  "serum pregnancy test": "Pregnancy Test",
+  "sgot and/or sgpt": "ALT/AST",
+  "sgpt": "Alanine Aminotransferase (ALT)",
+  "total bilirubin": "Total Bilirubin",
+  "written informed consent": "Informed Consent",
+  "ability to understand and willingness to sign informed consent": "Informed Consent",
+  "ability to understand the requirements of the study": "Informed Consent",
+  "pregnancy": "Pregnancy Status",
+  "pregnant": "Pregnancy Status",
+  "lactation": "Lactation Status",
+  "breastfeeding": "Lactation Status",
+  "pregnancy or lactation": "Pregnancy/Lactation"
 }

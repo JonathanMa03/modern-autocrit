@@ -1,24 +1,37 @@
 {
-    "lab": "Lab Test",
-    "lab test": "Lab Test",
-    "laboratory": "Lab Test",
+  "comorbidity": "Comorbidity",
+  "disease": "Comorbidity",
+  "medical condition": "Comorbidity",
 
-    "vitals": "Vital",
-    "vital sign": "Vital",
+  "diagnosis": "Diagnosis",
+  "diagnostic": "Diagnosis",
 
-    "previous treatment": "Treatment History",
-    "treatment": "Treatment History",
-    "treatment history": "Treatment History",
+  "drug": "Medication",
+  "medication": "Medication",
+  "medicine": "Medication",
+  "pharmacologic treatment": "Medication",
 
-    "drug": "Medication",
-    "medication": "Medication",
+  "lab": "Lab Test",
+  "lab test": "Lab Test",
+  "laboratory": "Lab Test",
+  "laboratory test": "Lab Test",
 
-    "procedure": "Procedure",
-    "surgery": "Procedure",
+  "performance score": "Score",
+  "performance status": "Score",
+  "score": "Score",
 
-    "diagnosis": "Diagnosis",
-    "disease": "Comorbidity",
+  "previous therapy": "Treatment History",
+  "previous treatment": "Treatment History",
+  "prior therapy": "Treatment History",
+  "prior treatment": "Treatment History",
+  "treatment history": "Treatment History",
 
-    "performance status": "Score",
-    "ecog": "Score"
+  "procedure": "Procedure",
+  "surgery": "Procedure",
+  "surgical procedure": "Procedure",
+
+  "vital": "Vital",
+  "vital sign": "Vital",
+  "vital signs": "Vital",
+  "vitals": "Vital"
 }

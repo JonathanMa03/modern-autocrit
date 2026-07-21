@@ -12,3 +12,4 @@ tqdm
 rapidfuzz
 scikit-learn
 pytest
+sentence-transformers
