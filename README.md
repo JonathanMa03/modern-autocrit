@@ -8,7 +8,7 @@
 
 ## Overview
 
-`modern-autocrit` is a modernization of the [AutoCriteria](https://pubmed.ncbi.nlm.nih.gov/37952206/) clinical trial eligibility criteria extraction workflow.
+`modern-autocrit` is a modernization of the [AutoCriteria](https://pubmed.ncbi.nlm.nih.gov/37952206/) clinical trial eligibility criteria extraction workflow. This is a work in progress
 
 The goal is to refactor the original AutoCriteria-style pipeline into a cleaner, standalone application that uses the modern OpenAI SDK, removes legacy LangChain dependencies, and adds built-in tools for semantic deduplication and terminology normalization.
 
