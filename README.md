@@ -196,6 +196,35 @@ Alternatively, API keys can be entered from the **Settings** tab when using the 
 
 ## Running Modern AutoCrit
 
+### Download trial XML files
+
+Search ClinicalTrials.gov and download a chosen number of matching trials:
+
+```bash
+python data_download.py "lung cancer AND recruiting" 25
+```
+
+Files are saved to `data/raw/xml_trials/` by default. Requests for 100 or more
+trials require confirmation; use `--yes` for an intentional non-interactive
+download. Run `python data_download.py --help` for all options.
+
+### Update terminology dictionaries
+
+After the pipeline creates `outputs/modern_autocrit_output.xlsx`, add newly
+observed entity, attribute, and disease terminology to the normalization maps:
+
+```bash
+python dict_mapping.py
+```
+
+Use `--input path/to/output.xlsx` for another workbook. Existing mappings are
+never overwritten. To restore all three dictionaries to their original
+repository versions, run:
+
+```bash
+python dict_mapping.py --reset
+```
+
 ### Option 1 — Desktop Application (Recommended)
 
 Launch the full graphical application:
