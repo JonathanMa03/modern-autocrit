@@ -67,5 +67,8 @@ class ValidationMetrics(BaseModel):
     clause_coverage_rate: float = 0.0
     full_coverage_rate: float = 0.0
     unsupported_extraction_rate: float = 0.0
+    estimated_precision: float = 0.0
+    estimated_recall: float = 0.0
+    estimated_f1: float = 0.0
     missing_value_rate: float = 0.0
     atomicity_issue_rate: float = 0.0

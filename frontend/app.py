@@ -8,6 +8,7 @@ from frontend.views.run_view import RunView
 from frontend.views.settings_view import SettingsView
 from frontend.views.dictionary_view import DictionaryView
 from frontend.views.analytics_view import AnalyticsView
+from frontend.views.integrity_view import IntegrityView
 
 
 class ModernAutoCritApp(tk.Tk):
@@ -86,6 +87,11 @@ class ModernAutoCritApp(tk.Tk):
             self.state,
         )
 
+        self.integrity_view = IntegrityView(
+            self.notebook,
+            self.state,
+        )
+
         self.notebook.add(
             self.run_view,
             text="Run",
@@ -101,6 +107,10 @@ class ModernAutoCritApp(tk.Tk):
         self.notebook.add(
             self.analytics_view,
             text="Analytics",
+        )
+        self.notebook.add(
+            self.integrity_view,
+            text="Integrity",
         )
 
 

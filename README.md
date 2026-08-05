@@ -107,6 +107,22 @@ Anomaly detection currently identifies:
   <img src="figs/autocrit_analytics.png" width="900">
 </p>
 
+#### Integrity Validation
+
+The **Integrity** tab performs an independent, LLM-assisted audit of one trial
+or a group of trials. Select the source XML folder and extraction workbook, then
+optionally enter specific NCT IDs. The validator inventories the source criteria,
+flags missed or partially extracted requirements, identifies unsupported or
+potentially fabricated rows, computes estimated precision/recall/F1 and coverage
+metrics, and saves a multi-sheet Excel report. Its findings are review aids rather
+than clinical ground truth; the chat panel supports follow-up questions grounded
+in the completed audit. A progress bar tracks completed trials, and Stop prevents
+additional trials from starting after the current model request finishes.
+
+<p align="center">
+  <img src="figs/autocrit_integrity.png" width="900">
+</p>
+
 ---
 
 ## Goals
@@ -233,12 +249,13 @@ Launch the full graphical application:
 python main.py
 ```
 
-The application provides four tabs:
+The application provides five tabs:
 
-- **Settings** – Configure API provider, model, and extraction settings.
-- **Run Pipeline** – Execute the extraction pipeline.
+- **Run** – Execute the extraction pipeline.
+- **Settings** – Configure the API provider, model, and extraction settings.
+- **Dictionary** – Review and edit terminology mappings.
 - **Analytics** – Review extraction summaries, unmapped terms, and anomaly reports.
-- **Benchmark** – Compare models and extraction performance.
+- **Integrity** – Audit extracted rows against the source trial criteria.
 
 ---
 
@@ -282,7 +299,8 @@ Successful runs generate:
 outputs/
 ├── modern_autocrit_output.xlsx
 ├── modern_autocrit_output_unmapped_terms.xlsx
-└── modern_autocrit_output_anomalies.xlsx
+├── modern_autocrit_output_anomalies.xlsx
+└── integrity_validation.xlsx
 ```
 
 where:
@@ -290,3 +308,4 @@ where:
 - **modern_autocrit_output.xlsx** contains the extracted structured eligibility criteria.
 - **modern_autocrit_output_unmapped_terms.xlsx** lists attributes that could not be normalized.
 - **modern_autocrit_output_anomalies.xlsx** contains automatically flagged measurement, terminology, and quality-control anomalies for manual review.
+- **integrity_validation.xlsx** contains source-coverage findings, extraction-support findings, quality notes, validation metrics, and run status from the Integrity audit.
