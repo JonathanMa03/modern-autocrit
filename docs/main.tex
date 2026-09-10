@@ -1,0 +1,109 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.35em,topsep=0.4em}
+
+\title{Potential Modern AutoCrit Project Proposals}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\part{Main Idea}
+\section{1. AutoCrit MetricSpace: Quantifying Eligibility and Population Similarity}
+
+\href{https://github.com/JonathanMa03/modern-autocrit}{Modern Autocrit} already extracts normalized eligibility criteria, but the current output mainly supports qualitative comparisons: it can indicate that two criteria are different without quantifying \emph{how different} they are. This project would develop a statistically meaningful distance measure between individual eligibility claims and between the trial populations those claims define. The resulting distance could be used to retrieve comparable trials, determine how much historical information to borrow, and quantify how proposed eligibility changes propagate into sample size, power, recruitment, and generalizability.
+
+\subsection*{Criterion-level distance}
+
+A general-purpose sentence embedding can represent the semantic meaning of two claims and compare their vectors using cosine or Euclidean distance. This is useful for recognizing that ``age at least 60'' and ``participants must be 60 years or older'' express the same requirement. However, embeddings alone may assign excessive similarity to clinically different thresholds such as ``age $\geq 60$'' and ``age $\geq 18$'' because nearly all of their words are identical.
+
+The proposed system would therefore use a hybrid representation containing:
+
+\begin{itemize}
+    \item a sentence embedding for the criterion's semantic meaning;
+    \item structured fields produced by Modern AutoCrit, including entity, attribute, comparator, threshold, unit, temporality, negation, and logical relationships;
+    \item domain-aware numerical distances that account for the clinical scale and direction of a threshold; and
+    \item an LLM or trained classifier for relationships that cannot be reliably resolved from vectors alone.
+\end{itemize}
+
+A criterion distance could take the form
+
+\[
+d(c_i,c_j)
+=
+w_s d_{\mathrm{semantic}}(c_i,c_j)
++ w_a d_{\mathrm{attribute}}(c_i,c_j)
++ w_n d_{\mathrm{numeric}}(c_i,c_j)
++ w_l d_{\mathrm{logic}}(c_i,c_j),
+\]
+
+where the weights are learned or calibrated against human judgments and downstream performance. For numeric criteria, the distance should use a clinically meaningful scale rather than raw token similarity. For example, thresholds could be standardized by an observed population distribution, reference range, or robust scale so that the model recognizes the practical difference between age cutoffs of 18 and 60.
+
+\subsection*{LLM-assisted distance quantification}
+
+For criterion pairs that remain ambiguous after structured parsing, an LLM could act as a constrained pairwise evaluator. Given two source claims and their extracted fields, it would classify their relationship---for example, equivalent, narrower, broader, partially overlapping, contradictory, or unrelated---and assign an ordinal distance with a short evidence-based explanation. The LLM score would be calibrated against reviewed criterion pairs and combined with, rather than substituted for, the embedding and structured numerical distances. Repeated evaluations or multiple models could provide an uncertainty measure, with high-disagreement pairs routed to human review.
+
+\begin{itemize}
+    \item Require the LLM to compare the clinical effect of changed thresholds, units, negation, time windows, and logical operators rather than relying on surface wording.
+    \item Evaluate agreement with expert pairwise rankings, calibration of the proposed distance, and consistency across repeated prompts and model choices.
+    \item Use the LLM-derived relationship as an interpretable feature in the final hybrid metric and preserve its explanation for auditing trial matches.
+\end{itemize}
+
+\subsection*{Population-level distance}
+
+After defining criterion-level costs, compare two trials as collections of eligibility constraints. One approach is optimal transport: each trial is represented as a weighted set of criteria, and the transport plan matches related criteria across protocols while paying a higher cost for unmatched or substantially different requirements.
+
+\[
+D(P,Q)
+=
+\min_{\gamma \in \Pi(P,Q)}
+\sum_{i,j}\gamma_{ij}d(c_i,c_j).
+\]
+
+This produces both an overall distance and an interpretable alignment showing which criteria make the populations different. If patient-level or synthetic population data are available, the project could also compare the distributions of patients who pass each protocol using Wasserstein distance, energy distance, or maximum mean discrepancy. The text-level and patient-level measures can then be compared to determine whether semantic protocol differences correspond to meaningful population shifts.
+
+\subsection*{How far should the system pull comparable trials?}
+
+The retrieval radius should be selected empirically rather than chosen only from visual similarity. The project would retrieve historical trials at increasing distance thresholds and evaluate the bias--variance tradeoff:
+
+\begin{itemize}
+    \item a narrow radius returns highly similar trials but may provide too little historical information;
+    \item a wide radius increases the available sample but may introduce nonexchangeable populations and biased assumptions; and
+    \item the preferred radius minimizes a prespecified downstream loss, such as prediction error, prior-data conflict, treatment-effect bias, or poor confidence-interval coverage.
+\end{itemize}
+
+Cross-validation or simulation can select the distance threshold, with uncertainty reported through bootstrap intervals. In a Bayesian design, distance could control the degree of historical borrowing, but the mapping from distance to prior weight must be prespecified and stress-tested under population conflict.
+
+\subsection*{Propagation into trial design}
+
+The distance measure becomes useful when connected to concrete design decisions. The system could:
+
+\begin{itemize}
+    \item retrieve historical trials for control-rate, variance, dropout, or recruitment assumptions;
+    \item discount historical effective sample size as population distance increases;
+    \item estimate how relaxing one criterion changes the target population distribution;
+    \item update expected event rates, outcome variance, required sample size, and power under the shifted population; and
+    \item show which individual criteria account for most of the distance between two protocols.
+\end{itemize}
+
+\subsection*{Course-project sketch}
+
+\begin{itemize}
+    \item Use an LLM with Modern AutoCrit to extract and classify eligibility claims into structured criterion types, such as demographic, laboratory, disease, biomarker, treatment-history, and temporal requirements.
+    \item Create labeled pairs of criteria with human or carefully reviewed LLM judgments such as equivalent, slightly different, substantially different, contradictory, or unrelated.
+    \item Compare a general-purpose embedding baseline with a hybrid structured distance and a dedicated model fine-tuned using contrastive or ordinal learning on the labeled criterion pairs.
+    \item Evaluate retrieval of clinically comparable trials and test whether weighting historical assumptions by distance improves simulated sample-size, power, or recruitment estimates.
+    \item Demonstrate the result as an interface that aligns two protocols, visualizes their most important differences, adjusts the retrieval radius, and displays the resulting change in downstream trial-design calculations.
+\end{itemize}
+
+\end{document}
