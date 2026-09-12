@@ -6,14 +6,13 @@ This changelog documents the repository from its initial scaffold through the cu
 
 ### Added
 
-- Added the browser-based Automated Eligibility Criteria Extraction interface, ClinicalTrials.gov API v2 ingestion, atomic eligibility segmentation, governed EVA extraction, review and reconciliation, recoverable jobs, result caching, and clinical-distance analysis.
+- Added the browser-based Automated Eligibility Criteria Extraction interface, ClinicalTrials.gov API ingestion, atomic eligibility segmentation, governed EVA extraction, review and reconciliation, recoverable jobs, result caching, and clinical-distance analysis.
 
 ### Changed
 
 - Consolidated the active eligibility and registry processing packages under `backend/criteria_processor/` and `backend/ctg_parser/`.
-- Replaced the former desktop and XML/Excel extraction path with the browser-first EligCrit extraction service.
+- Replaced the former desktop and XML/Excel extraction path with the browser-first  extraction service.
 - Reduced application configuration and dependencies to those used by the active browser workflow.
-- Rewrote the README around the current installation, execution, architecture, storage, and testing behavior.
 - Corrected the canonical attribute mapping for `ability to swallow oral medication` so it normalizes to the plural form, `ability to swallow oral medications`.
 - Reconstructed this changelog from the complete Git history and organized each milestone by additions, changes, and removals.
 
@@ -22,13 +21,9 @@ This changelog documents the repository from its initial scaffold through the cu
 - Removed the unused Tkinter frontend and the `frontend_pyside_backup` application.
 - Removed the superseded XML/Excel extractor, normalization pipeline, anomaly detector, integrity validator, legacy dictionary services, and their dedicated schemas and tests.
 - Removed the old trial downloader, dictionary-update scripts, benchmarking placeholders, development notebook, desktop screenshots, downloaded XML cache, and generated Excel outputs.
-- Removed unused EligCrit CLI, calibration, migration-report, and ClinicalTrials.gov search-configuration modules that were not reachable from the browser application.
 
 ### Next steps sketch
 
-- Research established clinical terminology systems and assess integrating RxNorm and ICD-10 mappings for automated term cleaning and canonicalization.
-- Design and implement a reviewer/critic agent that independently evaluates the existing validation agent's findings and helps measure its accuracy, consistency, and unsupported conclusions.
-- Add an optional browser-based interface so the application can run through a web UI as an alternative to the standalone desktop experience.
 - Explore an embedding-based approach for adaptive dictionary maintenance, including semantic matching of unseen terms, suggested canonical mappings, confidence scoring, and a human-review step before dictionary updates are accepted.
 
 ## Validation agent and Integrity workspace

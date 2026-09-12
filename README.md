@@ -1,4 +1,4 @@
-# Automated Eligibility Criteria Extraction
+# Modern AutoCrit: Automated Eligibility Criteria Extraction
 
 A local browser application that retrieves clinical trial protocols and converts
 free-text eligibility criteria into reviewed, computational Entity–Attribute–Value
@@ -6,14 +6,14 @@ free-text eligibility criteria into reviewed, computational Entity–Attribute�
 
 ## Features
 
-- ClinicalTrials.gov API v2 retrieval by NCT ID
+- ClinicalTrials.gov API retrieval by NCT ID
 - deterministic inclusion/exclusion source segmentation
 - LLM-assisted atomic eligibility decomposition
 - governed EAV terminology retrieval and normalization
 - structured categorical values and numerical intervals
 - mapping review, Attribute ID review, and semantic reconciliation
 - recoverable jobs, atomic persistence, checkpoints, and result caching
-- numerical clinical-distance and retained-relevance calculations
+- numerical clinical-distance and retained-relevance calculations (ToDo)
 - searchable controlled EAV library
 
 ## Installation
@@ -62,7 +62,7 @@ main.py
 ├── webapp/                         browser server and static interface
 └── backend/
     ├── criteria_processor/         segmentation, extraction, EAV, review, recovery
-    ├── ctg_parser/                 ClinicalTrials.gov API v2 models and parsing
+    ├── ctg_parser/                 ClinicalTrials.gov API models and parsing
     ├── services/                   registry, LLM, job, and extraction adapters
     ├── statistics/                 clinical-distance models
     └── schemas/                    application configuration

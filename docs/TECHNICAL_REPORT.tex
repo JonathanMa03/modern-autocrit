@@ -3,613 +3,328 @@
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{microtype}
-\usepackage{hyperref}
 \usepackage{xcolor}
-\usepackage{longtable}
 \usepackage{booktabs}
+\usepackage{longtable}
 \usepackage{enumitem}
-\usepackage{listings}
+\usepackage{hyperref}
 \usepackage{tikz}
-\usetikzlibrary{arrows.meta,positioning,shapes.geometric}
+\usetikzlibrary{arrows.meta,positioning}
 
-\hypersetup{colorlinks=true,linkcolor=blue!50!black,urlcolor=blue!60!black,citecolor=blue!50!black}
-\setlist{nosep,leftmargin=*}
-\setlength{\LTpre}{0pt}
-\setlength{\LTpost}{8pt}
-\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single,columns=fullflexible}
-
+\definecolor{primary}{HTML}{A6192E}
+\definecolor{accent}{HTML}{D97A00}
+\definecolor{soft}{HTML}{F7E8E2}
+\definecolor{text}{HTML}{33312E}
+\hypersetup{colorlinks=true,linkcolor=primary,urlcolor=primary,citecolor=primary}
+\setlist[itemize,enumerate]{nosep,leftmargin=*}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\fn}[2]{\item[\code{#1}] #2}
-\newenvironment{functionlist}{\begin{description}[style=nextline,leftmargin=1.7em,labelindent=0pt]}{\end{description}}
 
-\title{Modern AutoCrit: A Modular GPT-Based Clinical-Trial Eligibility-Criteria Extractor}
-\author{Jonathan Ma}
-\date{\today}
+\title{\textcolor{primary}{Automated Eligibility Criteria Extraction}\\
+\large Technical Architecture, Outputs, Errors, and Development Roadmap}
+\author{Modern AutoCrit Project}
+\date{}
 
 \begin{document}
 \maketitle
-
-\begin{abstract}
-Modern AutoCrit is a modular modernization of AutoCriteria, a GPT-based system for extracting granular clinical-trial eligibility criteria from ClinicalTrials.gov documents. This report documents the current repository architecture and every Python function or method, explains the differences from the upstream inspiration, records key development milestones, and proposes a path toward an agentic eligibility-extraction system. The report describes software behavior; it does not assert that model outputs are clinical ground truth or suitable for autonomous eligibility decisions.
-\end{abstract}
-
 \tableofcontents
 \newpage
 
-\section{Purpose, scope, and lineage}
+\section{Purpose and Scope}
 
-The project is inspired by Datta et al.'s AutoCriteria system and its public repository \cite{autocriteria-repo,autocriteria-paper}. The upstream program accepts ClinicalTrials.gov XML, separates inclusion and exclusion text, prompts GPT-4 for structured fields, performs substantial response cleanup, and writes tabular results. Its public implementation places prompt templates, LangChain calls, XML traversal, retry logic, post-processing, and dataframe construction in a single \code{eligibility_criteria_extraction.py} script \cite{autocriteria-repo}.
+Automated Eligibility Criteria Extraction is a local, browser-based application that converts free-text clinical-trial eligibility criteria into atomic, governed Entity--Attribute--Value (EAV) records. A user may supply either a ClinicalTrials.gov NCT identifier or pasted eligibility text. The application retrieves or accepts the protocol text, segments it into atomic criteria, uses a large language model (LLM) to map each criterion into the terminology library, normalizes categorical and numerical values, validates the mapping, and presents a reviewable table. It also exposes a clinical-distance calculator and a read-only view of the EAV library.
 
-Modern AutoCrit preserves the central scientific objective---turning free-text eligibility criteria into auditable structured rows---but changes the software shape. It separates domain models, parsing, prompting, model access, normalization, quality checks, orchestration, persistence, and presentation. It uses the modern OpenAI SDK through a provider abstraction instead of LangChain, supplies both command-line and standalone Tkinter workflows, and adds deterministic anomaly screening plus an independent LLM-assisted integrity audit.
+This report documents the current implementation rather than the retired desktop interface. It covers every active architectural layer and the public or workflow-defining functions in the project. Small private helpers are grouped with their parent subsystem where they implement one operation, such as interval comparison, canonical text cleanup, or HTTP serialization.
 
-This document covers all tracked Python source files in the current tree, including active runtime code, command-line utilities, tests, benchmark placeholders, compatibility placeholders, and the retained PySide backup. Generated data, JSON dictionary entries, images, and notebook cells are architectural assets but are not Python function definitions and therefore are summarized rather than enumerated as callables.
+\section{Lineage and Changes from AutoCriteria}
 
-\section{System architecture}
+The project was inspired by Datta's AutoCriteria repository and paper \cite{autocriteria-repo,autocriteria-paper}. The inspiration demonstrated that an LLM could structure eligibility criteria. The current application is a substantial engineering extension:
 
-\subsection{Layered view}
+\begin{itemize}
+  \item LangChain orchestration was removed in favor of direct OpenAI SDK access behind a small provider interface. This reduces framework coupling and makes prompts, schemas, token usage, and failures easier to inspect.
+  \item The original long-script organization was decomposed into services, schemas, criteria-processing modules, statistical modules, and a browser presentation layer.
+  \item The former standalone desktop GUI was replaced by a local web application served over HTTP. The browser is now the only supported interface.
+  \item ClinicalTrials.gov API v2 retrieval and parsing allow an NCT identifier to serve as the protocol input.
+  \item Extraction now includes atomic segmentation, a governed EAV terminology library, structured value and interval normalization, mapping review and reconciliation, job recovery, atomic persistence, and deterministic caching.
+  \item A clinical-distance subsystem turns normalized numerical or categorical conditions into interpretable penalties for downstream statistical work.
+\end{itemize}
+
+These changes preserve the central goal of protocol-to-structure conversion while shifting the project toward a durable, auditable tool that can support trial design and population-comparison applications.
+
+\section{Current Web Application}
+
+\subsection{User-facing workflow}
+
+The web interface has three tabs:
+
+\begin{description}
+  \item[Extract.] Enter an NCT ID, paste eligibility text, or do both. When text is blank, the server retrieves the trial from ClinicalTrials.gov. When text is present, it is authoritative and the NCT ID is used as its label. The user can preview deterministic segmentation or run the full AI extraction.
+  \item[Clinical distance.] Compare an observed numerical value with a target criterion using a tolerance, distance scale, and condition weight. The result explains the raw distance, normalized distance, and weighted penalty.
+  \item[EAV library.] Inspect the governed entities and attributes used for extraction, including library revision and content hash.
+\end{description}
+
+The criteria text box therefore has two purposes: it permits extraction of a local or unpublished protocol, and it permits an explicit override of the registry text for a supplied NCT ID. Leaving it blank selects registry retrieval.
+
+\subsection{Architecture}
 
 \begin{center}
 \begin{tikzpicture}[
-  node distance=7mm and 10mm,
-  box/.style={draw,rounded corners,align=center,text width=0.82\textwidth,minimum height=9mm,fill=blue!4},
-  arrow/.style={-{Latex[length=2mm]},thick}
+  node distance=7mm and 7mm,
+  box/.style={draw=primary,rounded corners,fill=soft,align=center,minimum height=9mm,text width=27mm,font=\small},
+  arrow/.style={-{Stealth[length=2mm]},thick,color=accent}
 ]
-\node[box] (ui) {Presentation: Tkinter Run, Settings, Dictionary, Analytics, and Integrity views; CLI entry points};
-\node[box,below=of ui] (api) {Application coordination: shared state and route functions};
-\node[box,below=of api] (pipeline) {Orchestration: extraction pipeline and integrity-validation agent};
-\node[box,below=of pipeline] (core) {Domain processing: prompt construction, response parsing, normalization, anomaly rules};
-\node[box,below=of core] (services) {Infrastructure: ClinicalTrials.gov XML, LLM provider, files, dictionaries, costs, logging};
-\node[box,below=of services] (data) {Contracts and artifacts: Pydantic/dataclass models, JSON configuration, XML input, Excel output};
-\draw[arrow] (ui) -- (api);
-\draw[arrow] (api) -- (pipeline);
-\draw[arrow] (pipeline) -- (core);
-\draw[arrow] (core) -- (services);
-\draw[arrow] (services) -- (data);
+\node[box] (browser) {Browser UI\\HTML/CSS/\\JavaScript};
+\node[box,right=of browser] (server) {Local HTTP server\\\texttt{webapp/}\\\texttt{server.py}};
+\node[box,right=of server] (services) {Application services\\jobs, registry, LLM};
+\node[box,below=of services] (processor) {Criteria processor\\segmentation, EAV, review};
+\node[box,left=of processor] (stats) {Statistics\\clinical distance};
+\node[box,right=of processor] (storage) {Persistent artifacts\\JSON, CSV, checkpoints};
+\draw[arrow] (browser) -- (server);
+\draw[arrow] (server) -- (services);
+\draw[arrow] (services) -- (processor);
+\draw[arrow] (server) -- (stats);
+\draw[arrow] (processor) -- (storage);
 \end{tikzpicture}
 \end{center}
 
-The active dependency direction is mostly downward: views call route/service objects; the pipeline composes extraction, normalization, quality analysis, and file output; services isolate external systems; schemas define cross-layer contracts. The integrity agent is deliberately adjacent to, rather than inside, the extraction pipeline so it can audit outputs against source text independently.
+\begin{itemize}
+  \item \code{main.py} is the launch point and calls the browser server.
+  \item \code{webapp/} contains the local server and static browser assets.
+  \item \code{backend/api/} constructs shared application state.
+  \item \code{backend/services/} owns registry access, LLM adapters, extraction jobs, costs, and files.
+  \item \code{backend/criteria_processor/} owns atomic criteria and the governed EAV workflow.
+  \item \code{backend/ctg_parser/} maps ClinicalTrials.gov v2 JSON into typed trial records.
+  \item \code{backend/statistics/} owns clinical-distance policies and analysis.
+  \item \code{config/} contains settings and the governed library; \code{runtime/eligcrit/} contains recoverable run artifacts.
+\end{itemize}
 
-\subsection{Primary extraction flow}
+\subsection{End-to-end extraction sequence}
 
 \begin{enumerate}
-\item \code{ClinicalTrialsService} discovers XML files and loads trial metadata and eligibility text.
-\item \code{ModernAutoCritExtractor} separates inclusion/exclusion sections, chunks text, builds a prompt, calls the configured LLM provider, and parses each response into \code{EligibilityCriterion} objects.
-\item \code{CriteriaNormalizer} canonicalizes entity, attribute, disease, and value text; returns unmapped terms; and removes exact duplicates.
-\item \code{AnomalyDetector} applies numeric, unit, terminology, and missing-value checks.
-\item \code{ModernAutoCritPipeline} writes the criteria, unmapped-term, and anomaly Excel workbooks and returns a \code{PipelineSummary}.
-\item The Run and Analytics views display progress and results without placing extraction logic in GUI widgets.
+  \item The browser posts the trial ID and optional criteria text to \code{/api/jobs/extract}.
+  \item \code{EligCritExtractionService.submit} validates the input. With an empty text box it calls \code{fetch_study}; otherwise it creates a registry-shaped local source document.
+  \item The source and initial job record are atomically persisted before a background thread begins.
+  \item The service computes a cache fingerprint from the criteria text, configured model, and EAV-library hash. An unchanged rerun can reuse its audit and breakdown safely.
+  \item Deterministic segmentation creates provenance-bearing atomic criteria. The LLM pipeline searches candidate attributes, makes a structured selection, normalizes values, and reviews the result.
+  \item The completed audit is written to disk. The browser polls the job endpoint and then requests a simplified cleaned result for display.
 \end{enumerate}
 
-\subsection{Integrity-validation flow}
+The cache includes the library hash so a terminology update invalidates old mappings. A failed run is not a valid cache entry and can be rerun. Each submission receives a new job ID even when the computed extraction result is reusable.
 
-The Integrity view supplies source XML, an extraction workbook, optional trial IDs, and an output path. \code{IntegrityValidationAgent} aligns workbook rows with each trial, asks an LLM to assess source-clause coverage and row support, validates returned indices, assigns conservative defaults for omitted rows, calculates estimated metrics, and exports a multi-sheet workbook. Follow-up chat is grounded in a reduced JSON representation of the completed audit. These metrics are model-assisted estimates, not clinician-annotated performance measurements.
+\section{Function and Component Reference}
 
-\subsection{Data contracts}
+\subsection{Entry point, HTTP server, and state}
 
-\begin{longtable}{p{0.27\textwidth}p{0.67\textwidth}}
+\begin{description}[style=nextline]
+  \fn{main.main()}{Starts the local browser application.}
+  \fn{run_browser_app(host, port, open_browser)}{Creates the threaded HTTP server, resumes incomplete jobs, optionally opens a browser, and serves until interrupted.}
+  \fn{BrowserApplication.dispatch(method, path, body)}{Routes health, library, segmentation, normalization, distance, parser, job, result, and cleaned-result API requests.}
+  \fn{BrowserApplication.resume()}{Delegates recovery of queued or interrupted extraction jobs.}
+  \fn{_handler(application)}{Builds the request handler, limits request bodies, converts expected exceptions into HTTP responses, and safely serves static files.}
+  \fn{_cleaned_item(item)}{Projects a full EAV audit item into the columns used by the browser table.}
+  \fn{create_app_state()}{Loads settings and constructs shared services such as cost monitoring.}
+\end{description}
+
+\subsection{Registry and trial parsing}
+
+\begin{description}[style=nextline]
+  \fn{fetch_study(nct_id)}{Validates the NCT identifier and downloads one study from the ClinicalTrials.gov v2 API.}
+  \fn{eligibility_text_from_study(study)}{Extracts the eligibility-criteria block and reports a clear error when it is absent.}
+  \fn{parse_ctgov_study(study)}{Converts registry JSON into typed identification, status, design, intervention, outcome, and eligibility fields.}
+  \fn{_module(), _date_value()}{Defensively retrieve nested protocol modules and normalized date values.}
+\end{description}
+
+\subsection{Extraction jobs and persistence}
+
+\begin{description}[style=nextline]
+  \fn{EligCritExtractionService.submit()}{Creates a durable queued job, retrieves or wraps the source, and launches processing.}
+  \fn{get(job_id)}{Reads the persisted job record or raises a not-found error.}
+  \fn{resume_incomplete()}{Restarts jobs left queued or running after an application interruption.}
+  \fn{_run(job_id)}{Runs segmentation and EAV extraction, records cache hits and paths, captures errors, and always writes the final state.}
+  \fn{atomic_write_text/json/jsonl()}{Writes through a temporary file and atomic replacement so interruption cannot leave a partially written artifact.}
+  \fn{FileManager}{Provides project file and directory operations for service code.}
+\end{description}
+
+\subsection{LLM boundary and usage accounting}
+
+\begin{description}[style=nextline]
+  \fn{create_llm_provider(settings, cost_monitor)}{Constructs the configured provider without exposing vendor details to the pipeline.}
+  \fn{OpenAIProvider}{Calls the OpenAI SDK and returns a provider-neutral response containing text and token usage.}
+  \fn{StructuredJsonAdapter}{Requests schema-constrained output and parses the returned JSON object.}
+  \fn{RuntimeRecordingJsonLLMProvider}{Records prompts, responses, stage metadata, and failures as recoverable JSONL run evidence.}
+  \fn{CostMonitor}{Records token counts and estimates cost using the selected model's pricing entry.}
+\end{description}
+
+\subsection{Segmentation, extraction, and EAV governance}
+
+\begin{description}[style=nextline]
+  \fn{split_eligibility_criteria()}{Separates inclusion and exclusion sections and splits bullets into atomic criteria.}
+  \fn{iter_eligibility_source_items()}{Returns typed, ordered criteria with stable source provenance.}
+  \fn{eligibility_source_items_from_sections()}{Creates the same atomic records from already separated sections.}
+  \fn{process_trial()}{Creates the eligibility breakdown CSV, using checkpoints to avoid losing completed work.}
+  \fn{load_breakdown_points()}{Validates and loads atomic points for the EAV stage.}
+  \fn{normalize_search_expansion() / retrieve_attribute_candidates()}{Normalizes LLM search terms and ranks plausible governed attributes using aliases, text overlap, and schema compatibility.}
+  \fn{validate_reasoning_selection()}{Rejects selections that violate the output schema or select an ``existing'' attribute outside the supplied candidate set.}
+  \fn{build_eva_audit_item() / extract_one_eva()}{Constructs one reviewed EAV record from a criterion and its selected mapping.}
+  \fn{extract_trial_eva()}{Coordinates extraction for every atomic criterion and returns the trial audit document.}
+  \fn{finalize_trial_attribute_id_conflicts()}{Detects incompatible new definitions that would otherwise share an attribute ID.}
+  \fn{EvaLibraryRepository}{Loads governed entities and attributes, computes revision/hash identity, takes snapshots, and applies reviewed changes with concurrency checks.}
+  \fn{review_eva_mapping() / review_new_attribute_id()}{Runs critic-style checks of semantic fit, candidate selection, and proposed identifiers.}
+  \fn{validate_mapping_review() / validate_attribute_id_review()}{Enforces review schemas, English explanations, candidate hashes, and allowed decisions.}
+  \fn{EligibilityEvaReconciliationJobStore}{Persists preview/apply reconciliation jobs and their fingerprints.}
+  \fn{migrate_eva_audit_v1/v2() / load_eva_audit()}{Upgrades historical audit documents into the current schema.}
+  \fn{write_audit_csv() / apply_audit_records_to_workbook()}{Exports terminology proposals and applies approved entity, attribute, value, and alias updates.}
+\end{description}
+
+\subsection{Value normalization and clinical distance}
+
+\begin{description}[style=nextline]
+  \fn{normalize_structured_value()}{Canonicalizes categorical assertions, ranges, units, inclusivity, and criterion polarity.}
+  \fn{canonicalize_intervals()}{Sorts and merges equivalent or adjacent numeric intervals.}
+  \fn{complement_intervals() / intersect_interval_sets()}{Computes excluded complements and combined eligible regions.}
+  \fn{aggregate_numeric_constraints()}{Combines multiple criteria for one attribute into a single interval representation.}
+  \fn{validate_numerical_penalty_policy() / validate_categorical_penalty_policy()}{Reject malformed penalty policies before analysis.}
+  \fn{default_numerical_penalty()}{Builds a default tolerance-and-scale policy from target context.}
+  \fn{clinical_distance_penalty()}{Calculates the weighted penalty for an observed value relative to a numeric target.}
+  \fn{categorical_label_penalty() / categorical_unresolved_penalty()}{Scores categorical agreement or explicitly unresolved comparisons.}
+  \fn{calculate_condition_penalty_analysis()}{Evaluates all supported conditions and returns component and aggregate penalties with diagnostics.}
+  \fn{initialize_numerical_penalties()}{Uses observed/target context to initialize clinically meaningful numerical policy parameters.}
+\end{description}
+
+\section{Meaning of Application Outputs}
+
+\subsection{Job output}
+
+\begin{longtable}{p{0.22\textwidth}p{0.70\textwidth}}
 \toprule
-Type & Responsibility \\
+Field or state & Meaning \\
 \midrule
 \endhead
-\code{EligibilityCriterion} & One extracted row: trial/type, entity, attribute, value, temporal qualifier, modifier, source sentence, phase, and URL. \\
-\code{ExtractionResult} & Criteria and non-fatal errors produced for one trial. \\
-\code{PipelineSummary} & Counts before/after normalization and deduplication, cost, output paths, and anomaly counts by severity/category. \\
-\code{LLMSettings} & Provider, credential, model, base URL, temperature, and output-token limit. \\
-\code{AppSettings} & Aggregates extraction, cost, directory, and dictionary settings. \\
-\code{AnomalyFinding} & Rule identifier, affected row/fields, category, severity, message, action, and confidence. \\
-\code{ClauseValidation} & Source clause, coverage classification, matched rows, missing concepts, explanation, and confidence. \\
-\code{ExtractionValidation} & Extracted-row support classification and its source evidence. \\
-\code{ValidationMetrics} & Coverage/support counts and estimated precision, recall, F1, missing-value, and atomicity rates. \\
-\code{TrialValidationResult} / \code{ValidationRunResult} & Per-trial findings and multi-trial run state, report path, errors, and cancellation status. \\
+\code{job_id} & Unique identifier for this submission and its run records. \\
+\code{trial_id} & Supplied NCT ID or generated \code{LOCAL-*} label. \\
+\code{queued} & The durable job exists and is waiting for its worker thread. \\
+\code{running} & Segmentation, LLM mapping, normalization, or review is active. \\
+\code{completed} & A breakdown CSV and EAV audit are available. It does not mean every proposed mapping has been approved for the governed library. \\
+\code{failed} & Processing stopped; the \code{error} field is the immediate cause. Prior atomic artifacts remain available for diagnosis. \\
+\code{source_path} & Registry-shaped JSON used as the immutable run input. \\
+\code{breakdown_path} & CSV of atomic criteria and intermediate breakdown fields. \\
+\code{audit_path} & Final detailed EAV audit JSON. \\
+\code{cache_hit=true} & An audit with identical text, model, and library hash was reused; no new LLM extraction was necessary. \\
 \bottomrule
 \end{longtable}
 
-\section{Complete active-code function reference}
+\subsection{Cleaned eligibility table}
 
-This section inventories every function, property, and method in active production modules. Constructors are included because they establish dependencies and runtime state. Private and nested helpers are included explicitly.
-
-\subsection{Entry points and application coordination}
-
-\paragraph{\code{main.py}}
-\begin{functionlist}
-\fn{main()}{Ensures runtime directories exist and launches the Tkinter application.}
-\end{functionlist}
-
-\paragraph{\code{run_pipeline.py}}
-\begin{functionlist}
-\fn{main()}{Builds default LLM, extraction, cost, normalizer, and pipeline objects; processes the configured XML directory; and prints the resulting summary for a GUI-free run.}
-\end{functionlist}
-
-\paragraph{\code{backend/api/app_state.py}}
-\begin{functionlist}
-\fn{create_app_state()}{Loads persisted settings and constructs shared cost-monitor and disabled Codex-bridge state for the GUI.}
-\end{functionlist}
-
-\paragraph{\code{backend/api/routes.py}}
-\begin{functionlist}
-\fn{save_settings(state)}{Persists the settings held in shared application state.}
-\fn{run_pipeline(state, xml_directory, output_excel)}{Constructs the extractor, normalizer, and pipeline from state, runs extraction, and records the current output and last summary.}
-\fn{preview_output(output_excel, n)}{Returns the first \code{n} rows of a saved output workbook.}
-\fn{load_dictionary(dictionary_type)}{Loads a named normalization dictionary through \code{DictionaryService}.}
-\fn{save_dictionary(dictionary_type, mapping)}{Persists a complete named mapping.}
-\fn{add_dictionary_mapping(dictionary_type, raw_term, canonical_term)}{Adds or replaces one raw-to-canonical mapping.}
-\end{functionlist}
-
-\subsection{Core extraction, parsing, prompting, and normalization}
-
-\paragraph{\code{backend/core/extractor.py}: \code{ModernAutoCritExtractor}}
-\begin{functionlist}
-\fn{__init__(llm_settings, extraction_settings, cost_monitor)}{Resolves defaults, retains extraction/cost configuration, and obtains an LLM provider from the factory.}
-\fn{extract_from_text(criteria_text, trial_id, criteria_type, phase, url, disease_context)}{Word-chunks one inclusion or exclusion block, prompts the provider for every chunk, parses responses, and concatenates typed criteria.}
-\fn{extract_from_trial_dict(trial)}{Validates trial text, derives disease context, separates inclusion/exclusion sections, runs each independently, and returns criteria plus recoverable errors.}
-\fn{extract_from_xml_directory(xml_directory)}{Loads and extracts every XML trial in a directory, returning one \code{ExtractionResult} per file.}
-\fn{split_inclusion_exclusion(eligibility_text)}{Conservatively locates inclusion/exclusion headings and returns two text sections, falling back to treating unsplit text as inclusion.}
-\end{functionlist}
-
-\paragraph{\code{backend/core/prompts.py}}
-\begin{functionlist}
-\fn{build_extraction_prompt(criteria_text, criteria_type, disease_context)}{Builds the provider-ready instruction for atomic structured extraction with source grounding and type-specific semantics.}
-\fn{build_temporal_prompt(sentence, attribute)}{Builds a focused prompt for obtaining the time constraint associated with an attribute; it remains available as a helper but is not on the primary extraction path.}
-\end{functionlist}
-
-\paragraph{\code{backend/core/parser.py}}
-\begin{functionlist}
-\fn{extract_json_array(text)}{Finds and decodes a JSON array from raw or fenced model output, with bracket-boundary recovery.}
-\fn{is_bad_attribute(attribute)}{Rejects empty, placeholder, generic, or otherwise unusable attribute labels.}
-\fn{normalize_entity(entity)}{Maps common model variations to the repository's expected entity labels.}
-\fn{parse_extraction_response(response_text, trial_id, criteria_type, phase, url)}{Converts decoded model records into validated \code{EligibilityCriterion} objects while attaching trial metadata and filtering malformed rows.}
-\end{functionlist}
-
-\paragraph{\code{backend/core/normalizer.py}: \code{CriteriaNormalizer}}
-\begin{functionlist}
-\fn{__init__(entity_map, attribute_map, disease_map)}{Loads supplied or repository dictionaries and prepares cleaned lookup keys.}
-\fn{_clean_map_keys(mapping)}{Whitespace- and case-normalizes dictionary keys for deterministic matching.}
-\fn{normalize_entity(entity)}{Maps an entity label to its canonical form while retaining a cleaned fallback.}
-\fn{normalize_attribute(attribute)}{Canonicalizes an attribute through the attribute and disease maps.}
-\fn{normalize_value(attribute, value)}{Cleans values and applies attribute-aware value normalization.}
-\fn{normalize_criterion(criterion)}{Normalizes all relevant fields in one typed criterion.}
-\fn{normalize_many(criteria)}{Normalizes a collection and converts it into the standard dataframe representation.}
-\fn{remove_exact_duplicates(df)}{Drops duplicate criteria using the domain fields that define row equivalence.}
-\fn{find_unmapped_terms(df, min_count)}{Aggregates frequently observed entities/attributes absent from active dictionaries for reviewer attention.}
-\fn{find_fuzzy_duplicates(df, threshold)}{Finds semantically similar candidate pairs using string similarity; this is an advisory helper rather than automatic deletion.}
-\fn{criteria_to_dataframe(criteria)}{Serializes criteria into a dataframe with the canonical output-column order.}
-\end{functionlist}
-
-\subsection{Pipeline and quality control}
-
-\paragraph{\code{backend/services/pipeline.py}: \code{ModernAutoCritPipeline}}
-\begin{functionlist}
-\fn{__init__(extractor, normalizer, cost_monitor)}{Injects the three principal pipeline collaborators.}
-\fn{run(xml_directory, output_excel)}{Orchestrates trial loading, extraction, normalization, exact deduplication, anomaly analysis, unmapped-term analysis, workbook export, logging, and summary creation.}
-\fn{preview(output_excel, n)}{Loads the first \code{n} rows of an Excel output.}
-\end{functionlist}
-
-\paragraph{\code{backend/quality/anomaly_detector.py}: \code{AnomalyDetector}}
-\begin{functionlist}
-\fn{analyze_row(row, row_index)}{Applies missing-value, numeric-range, unit, and terminology checks to one output row and returns structured findings.}
-\fn{analyze_dataframe(df)}{Runs row analysis across a dataframe and concatenates all findings.}
-\fn{findings_to_dataframe(findings)}{Serializes anomaly objects into a stable tabular report.}
-\fn{_none_if_missing(value)}{Converts pandas missing values and empty values to \code{None} before rule evaluation.}
-\end{functionlist}
-
-\paragraph{\code{backend/quality/rules/numeric_rules.py}}
-\begin{functionlist}
-\fn{extract_first_number(text)}{Extracts the first signed integer or decimal from text.}
-\fn{extract_unit(text)}{Recognizes and canonicalizes supported clinical measurement units.}
-\fn{extract_comparator(text)}{Recognizes textual or symbolic comparison operators.}
-\fn{parse_measurement(text)}{Returns a \code{ParsedMeasurement} containing number, unit, and comparator.}
-\fn{normalize_attribute_name(attribute)}{Cleans an attribute key for rule lookup.}
-\fn{check_numeric_range(attribute, value)}{Applies attribute-specific plausibility and dosage thresholds and returns rule findings. Its nested \code{add(...)} helper creates each finding consistently.}
-\fn{check_unit_compatibility(attribute, value)}{Flags units incompatible with the recognized attribute family.}
-\end{functionlist}
-
-\paragraph{\code{backend/quality/rules/terminology_rules.py}}
-\begin{functionlist}
-\fn{clean_term(term)}{Normalizes whitespace and case for terminology checks.}
-\fn{check_bad_term(attribute, entity)}{Detects placeholders, prompt leakage, overly generic labels, and malformed terms. Its nested \code{add(...)} helper records consistent findings.}
-\fn{check_value_term(value)}{Detects missing, placeholder, or suspicious extracted values.}
-\end{functionlist}
-
-\subsection{Infrastructure services}
-
-\paragraph{\code{backend/services/clinicaltrials_service.py}: \code{ClinicalTrialsService}}
-\begin{functionlist}
-\fn{__init__(xml_directory)}{Stores and validates the directory used for XML discovery.}
-\fn{xml_files()}{Returns a deterministic list of XML files.}
-\fn{iter_trials()}{Yields each path together with its parsed BeautifulSoup document.}
-\fn{nct_id(soup)}{Extracts the trial identifier.}
-\fn{title(soup)}{Extracts the brief title.}
-\fn{phase(soup)}{Extracts the phase text.}
-\fn{condition(soup)}{Extracts all condition labels.}
-\fn{url(nct_id)}{Constructs the public ClinicalTrials.gov record URL.}
-\fn{eligibility_text(soup)}{Extracts the free-text eligibility block.}
-\fn{load_trial(xml_path)}{Parses one file and returns the trial dictionary consumed by the extractor.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/llm/base.py}}
-\begin{functionlist}
-\fn{BaseLLMProvider.generate(prompt, ...)}{Abstract provider contract for text generation with model and sampling limits.}
-\fn{BaseLLMProvider.test_connection()}{Sends a minimal deterministic request and verifies the expected response.}
-\fn{BaseLLMProvider.default_model}{Abstract property defining a provider's default model name.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/llm/factory.py}}
-\begin{functionlist}
-\fn{create_llm_provider(settings, cost_monitor)}{Selects a provider implementation from settings. The repository currently contains the OpenAI implementation; Anthropic, Gemini, and Ollama branches are extension points whose imported modules are not yet present.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/llm/openai_provider.py}: \code{OpenAIProvider}}
-\begin{functionlist}
-\fn{__init__(api_key, cost_monitor, max_retries)}{Resolves the API key, constructs the modern OpenAI client, and stores retry/cost collaborators.}
-\fn{default_model}{Returns the provider's default OpenAI model.}
-\fn{generate(prompt, ...)}{Calls the OpenAI Responses API, captures token usage, records cost, retries transient failures with exponential backoff, and gives quota exhaustion a targeted error.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/openai_client.py}: legacy compatibility client}
-\begin{functionlist}
-\fn{__init__(settings, cost_monitor, max_retries)}{Constructs the earlier OpenAI-specific client retained for compatibility.}
-\fn{generate_text(prompt, ...)}{Calls the Responses API with retries and returns output text.}
-\fn{generate_json(prompt, ...)}{Requests text and parses it as JSON.}
-\fn{_record_usage(response, model)}{Transfers token counts to the cost monitor.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/cost_monitor.py}: \code{CostMonitor}}
-\begin{functionlist}
-\fn{estimate_cost(model, input_tokens, output_tokens)}{Computes estimated request cost from the configured model-pricing table.}
-\fn{record_usage(model, input_tokens, output_tokens, label)}{Records one priced usage event and enforces a configured hard limit.}
-\fn{total_cost}{Returns accumulated estimated USD cost.}
-\fn{total_input_tokens}{Returns accumulated input tokens.}
-\fn{total_output_tokens}{Returns accumulated output tokens.}
-\fn{warning_reached}{Reports whether accumulated cost reached the warning threshold.}
-\fn{summary()}{Returns aggregate usage and cost values.}
-\fn{reset()}{Clears all recorded events.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/dictionary_service.py}: \code{DictionaryService}}
-\begin{functionlist}
-\fn{load(dictionary_type)}{Loads and cleans the requested entity, attribute, or disease map.}
-\fn{save(dictionary_type, mapping)}{Cleans and writes a complete map.}
-\fn{add_mapping(dictionary_type, raw_term, canonical_term)}{Adds or replaces one mapping and persists it.}
-\fn{remove_mapping(dictionary_type, raw_term)}{Deletes one mapping and persists the result.}
-\fn{clean_mapping(mapping)}{Normalizes keys/values, rejects blanks, and sorts the map.}
-\fn{_get_path(dictionary_type)}{Validates a dictionary type and resolves its configured JSON path.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/file_manager.py}: \code{FileManager}}
-\begin{functionlist}
-\fn{load_settings(settings_path)}{Loads JSON configuration into \code{AppSettings}, using defaults when appropriate.}
-\fn{save_settings(settings, settings_path)}{Creates parent directories and writes serialized settings.}
-\fn{load_dictionary(path)}{Loads a JSON mapping.}
-\fn{save_dictionary(dictionary, path)}{Writes a JSON mapping with stable formatting.}
-\fn{load_entity_dictionary()}{Loads the active entity map.}
-\fn{load_attribute_dictionary()}{Loads the active attribute map.}
-\fn{load_disease_dictionary()}{Loads the active disease map.}
-\fn{criteria_to_dataframe(criteria)}{Serializes typed criteria.}
-\fn{save_criteria_csv(criteria, path)}{Writes typed criteria to CSV.}
-\fn{save_criteria_excel(criteria, path)}{Writes typed criteria to Excel.}
-\fn{save_dataframe_csv(df, path)}{Writes any dataframe to CSV after creating its parent directory.}
-\fn{save_dataframe_excel(df, path)}{Writes any dataframe to Excel after creating its parent directory.}
-\fn{load_csv(path)}{Loads CSV into a dataframe.}
-\fn{load_excel(path)}{Loads Excel into a dataframe.}
-\end{functionlist}
-
-\paragraph{\code{backend/services/codex_bridge.py}: \code{CodexBridge}}
-\begin{functionlist}
-\fn{__init__(enabled)}{Stores whether the optional bridge is enabled.}
-\fn{is_available()}{Reports bridge availability.}
-\fn{run_task(task_name, payload)}{Returns a structured disabled/unavailable result or provides the hook for future external task execution.}
-\end{functionlist}
-
-\paragraph{\code{backend/utils}}
-\begin{functionlist}
-\fn{get_logger(name, log_file)}{Creates or retrieves a consistently formatted logger and optional file handler.}
-\fn{ensure_directories()}{Creates configured data, output, log, and dictionary directories.}
-\fn{normalize_whitespace(text)}{Collapses whitespace safely.}
-\fn{clean_text(text)}{Normalizes whitespace and common text artifacts.}
-\fn{split_sentences(text)}{Splits text into sentence-like units.}
-\fn{chunk_text_by_words(text, chunk_size, overlap)}{Builds overlapping word chunks while validating overlap constraints.}
-\fn{clean_attribute_key(text)}{Produces a normalized dictionary lookup key.}
-\end{functionlist}
-
-\subsection{Integrity validation agent}
-
-\paragraph{\code{backend/validation_agent/agent.py}}
-\begin{functionlist}
-\fn{TrialValidationResult.context_dict()}{Builds reduced audit context emphasizing incomplete source coverage and weak/unsupported extraction rows.}
-\fn{ValidationRunResult.trial_count}{Returns the number of successfully audited trials.}
-\fn{ValidationRunResult.report_context()}{Serializes reduced per-trial audit context for grounded follow-up chat.}
-\fn{IntegrityValidationAgent.__init__(llm_settings, cost_monitor, provider)}{Injects settings and either an explicit test/provider instance or a factory-created provider.}
-\fn{validate(xml_directory, extraction_file, trial_ids, report_file, stop_event, progress_callback)}{Selects trials, aligns workbook rows, supports cooperative cancellation/progress, isolates per-trial errors, detects requested-but-missing IDs, and optionally exports the run.}
-\fn{validate_trial(trial_id, eligibility_text, extracted_rows)}{Prompts the auditor, validates its JSON and indices, creates clause/row assessments, supplies conservative defaults for missing row judgments, and calculates metrics.}
-\fn{chat(run, question)}{Answers a non-empty follow-up question using completed report context.}
-\fn{_rows_for_prompt(dataframe)}{Selects useful columns, converts values to safe strings, and assigns prompt-local row indices.}
-\fn{_parse_json_object(text)}{Parses plain or fenced JSON and recovers the outermost object when necessary.}
-\fn{_is_valid_index(value, row_count)}{Checks whether a model-returned index is an integer within bounds.}
-\fn{_valid_indices(values, row_count)}{Filters, deduplicates, and sorts model-returned indices.}
-\fn{_calculate_metrics(trial_id, clauses, extractions, rows)}{Calculates weighted estimated precision/recall/F1 and coverage, unsupported, missing-value, and atomicity rates.}
-\fn{save_report(run, path)}{Writes status, summary, source coverage, extraction support, quality notes, and errors to separate Excel sheets.}
-\end{functionlist}
-
-\paragraph{\code{backend/validation_agent/prompts.py}}
-\begin{functionlist}
-\fn{build_validation_prompt(trial_id, eligibility_text, extracted_rows)}{Requests a JSON audit of source-clause coverage and extraction support, with explicit evidence and confidence fields.}
-\fn{build_chat_prompt(report_context, question)}{Constrains follow-up answers to completed audit evidence and includes the user's question.}
-\end{functionlist}
-
-\subsection{Tkinter presentation layer}
-
-\paragraph{\code{frontend/app.py}: \code{ModernAutoCritApp}}
-\begin{functionlist}
-\fn{__init__()}{Creates the root window, shared state, visual style, and application tabs.}
-\fn{_configure_style()}{Defines Tkinter theme, fonts, colors, and widget styles.}
-\fn{_build_ui()}{Creates navigation/header content and mounts Run, Settings, Dictionary, Analytics, and Integrity views.}
-\fn{launch_app()}{Constructs the application and enters the Tk event loop.}
-\end{functionlist}
-
-\paragraph{\code{frontend/views/run_view.py}}
-\begin{functionlist}
-\fn{QueueLogHandler.__init__(log_queue)}{Connects a logging handler to a thread-safe message queue.}
-\fn{QueueLogHandler.emit(record)}{Formats a log record and queues it for UI consumption.}
-\fn{RunView.__init__(parent, state)}{Initializes selection, progress, queue, and worker state and builds the view.}
-\fn{_build_ui()}{Constructs paths, controls, status, summaries, progress, and collapsible log widgets.}
-\fn{_configure_logging()}{Attaches the queue handler to relevant loggers.}
-\fn{select_xml_folder() / select_output_file()}{Opens selection dialogs and updates bound paths.}
-\fn{_count_xml_files(xml_directory)}{Counts input files for progress estimation.}
-\fn{start_pipeline()}{Validates inputs, resets state, and starts background extraction.}
-\fn{_run_pipeline_worker(xml_directory, output_file)}{Runs the route in a worker thread and queues success or failure.}
-\fn{_poll_queues()}{Schedules recurring result/log polling on the Tk thread.}
-\fn{_poll_log_queue()}{Moves queued log messages into the UI.}
-\fn{_update_progress_from_log(message)}{Infers completed-trial progress from pipeline log messages.}
-\fn{_poll_result_queue()}{Dispatches queued worker completion to success/error handlers.}
-\fn{_handle_success(summary)}{Restores controls, presents counts/cost/output, and updates shared state.}
-\fn{_handle_error(error_message)}{Restores controls and presents a failure.}
-\fn{toggle_logs()}{Shows or hides log details.}
-\fn{append_log(message)}{Appends one message to the log widget.}
-\fn{clear_log()}{Clears displayed logs.}
-\fn{destroy()}{Detaches logging resources before widget destruction.}
-\end{functionlist}
-
-\paragraph{\code{frontend/views/settings_view.py}: \code{SettingsView}}
-\begin{functionlist}
-\fn{__init__(parent, state)}{Creates settings variables, provider-test queues, and the form.}
-\fn{_build_ui()}{Builds provider/model, credential, extraction, cost, and directory controls.}
-\fn{_on_provider_changed(event)}{Refreshes model/provider-specific controls after selection.}
-\fn{_update_provider_fields()}{Applies provider-specific labels, defaults, and visibility.}
-\fn{_set_availability_not_tested()}{Resets the connection-test indicator.}
-\fn{_build_test_settings()}{Constructs validated temporary LLM settings from current form values.}
-\fn{test_provider()}{Starts a non-blocking provider connection test.}
-\fn{_test_provider_worker(test_settings)}{Creates/tests the provider off the Tk thread and queues the result.}
-\fn{_poll_test_results()}{Moves test completion back onto the UI thread.}
-\fn{save()}{Validates form values, updates shared settings/cost state, and persists configuration.}
-\end{functionlist}
-
-\paragraph{\code{frontend/views/dictionary_view.py}: \code{DictionaryView}}
-\begin{functionlist}
-\fn{__init__(parent)}{Initializes mapping selection, filtering, and editor state.}
-\fn{_build_ui()}{Builds dictionary selector, search, table, and edit controls.}
-\fn{refresh()}{Reloads the selected dictionary and refreshes the table.}
-\fn{populate_table()}{Filters and renders raw/canonical pairs.}
-\fn{_on_row_selected(event)}{Copies the selected mapping into editor fields.}
-\fn{add_or_update_mapping()}{Validates and persists an edited mapping.}
-\fn{delete_selected()}{Confirms and removes the selected mapping.}
-\fn{clear_fields()}{Clears editor selection and inputs.}
-\end{functionlist}
-
-\paragraph{\code{frontend/views/analytics_view.py}: \code{AnalyticsView}}
-\begin{functionlist}
-\fn{__init__(parent, state)}{Initializes summary variables, tables, paths, and UI.}
-\fn{_build_ui()}{Builds output selection, summary cards, criteria/unmapped/anomaly tables, and open-file controls.}
-\fn{_create_summary_card(parent, column, label, variable)}{Creates one reusable metric card.}
-\fn{_create_table(parent)}{Creates a scrollable dataframe preview table.}
-\fn{select_output_file()}{Selects a criteria workbook and refreshes analytics.}
-\fn{refresh()}{Loads output and companion workbooks, populates tables, and recalculates summaries.}
-\fn{_resolve_output_path()}{Chooses the explicitly selected or most recent pipeline output.}
-\fn{_get_unmapped_path(output_path) / _get_anomalies_path(output_path)}{Derives companion workbook paths.}
-\fn{_refresh_summary_from_state(output_df)}{Uses the last pipeline summary where available and dataframe fallbacks otherwise.}
-\fn{_clear_anomaly_summary()}{Nested refresh helper that zeros anomaly cards when no report is available.}
-\fn{_load_dataframe_into_tree(df, tree)}{Replaces table columns and rows from a dataframe.}
-\fn{open_output_file() / open_unmapped_file() / open_anomalies_file()}{Validates and opens the corresponding workbook.}
-\fn{_open_path(path)}{Delegates file opening to the operating system.}
-\end{functionlist}
-
-\paragraph{\code{frontend/views/integrity_view.py}: \code{IntegrityView}}
-\begin{functionlist}
-\fn{__init__(parent, state)}{Initializes path, selection, event-queue, cancellation, report, and chat state.}
-\fn{_build_ui()}{Builds audit inputs, controls, progress/summary area, and grounded chat panel.}
-\fn{_path_row(parent, row, label, variable, command)}{Creates a reusable labeled path selector.}
-\fn{_select_xml_directory() / _select_extraction_file() / _select_report_file()}{Opens the relevant selection dialog.}
-\fn{_start_validation()}{Validates inputs and starts the nested background \code{work()} function, which runs the agent and posts events.}
-\fn{_stop_validation()}{Sets cooperative cancellation so no additional trial begins after the active request.}
-\fn{_start_chat()}{Validates chat state and starts a nested \code{work()} function for the model request.}
-\fn{_send_from_event(event)}{Maps the keyboard event to chat submission.}
-\fn{_poll_events()}{Processes progress, audit, error, and chat events safely on the Tk thread.}
-\fn{_show_validation_summary(run)}{Renders aggregate run results and report location.}
-\fn{_append_chat(speaker, message)}{Adds a labeled message to the chat transcript.}
-\end{functionlist}
-
-\section{Command-line data utilities}
-
-\subsection{\texorpdfstring{\texttt{data\_download.py}}{data_download.py}}
-\begin{functionlist}
-\fn{_api_get(path, ...)}{Calls the ClinicalTrials.gov v2 API with timeout, session, and response/error handling.}
-\fn{_add_text(parent, tag, value)}{Adds a non-empty XML child element.}
-\fn{study_to_xml(study)}{Transforms a v2 API study object into the XML shape expected by the pipeline.}
-\fn{save_study_xml(study, output_dir)}{Serializes one transformed study under its NCT identifier.}
-\fn{download_trial_xml(nct_id, output_dir, sleep_seconds, session)}{Fetches and saves one specified trial.}
-\fn{search_studies(search_terms, number, ...)}{Paginates search results to the requested limit and warns about server-reported truncation.}
-\fn{download_search_results(search_terms, number, output_dir, ...)}{Searches, converts, and saves a batch of trials.}
-\fn{download_xml_from_dataframe(df, nct_column, output_dir, max_trials)}{Downloads trials listed in a dataframe column.}
-\fn{build_parser()}{Defines CLI arguments and help.}
-\fn{_confirm_large_download(number, threshold)}{Requests interactive confirmation above the safety threshold.}
-\fn{main(argv)}{Validates CLI input, enforces large-download confirmation, runs the download, and returns a process status.}
-\end{functionlist}
-
-\subsection{\texorpdfstring{\texttt{dict\_mapping.py}}{dict_mapping.py}}
-\begin{functionlist}
-\fn{_text(value)}{Converts non-missing cell content into normalized text.}
-\fn{_first_text(row, *columns)}{Returns the first usable value among candidate column names.}
-\fn{_add_if_new(mapping, raw, canonical)}{Adds a mapping only when its normalized raw key is absent.}
-\fn{update_dictionaries(output_file)}{Reads an extraction workbook, routes terms to entity/attribute/disease dictionaries, preserves existing decisions, saves changes, and returns counts.}
-\fn{reset_dictionaries()}{Restores all active maps from their original snapshots.}
-\fn{build_parser()}{Defines update/reset command-line options.}
-\fn{main(argv)}{Dispatches reset or update behavior and returns a process status.}
-\end{functionlist}
-
-\section{Tests, benchmarks, backups, and placeholders}
-
-\subsection{Test functions}
-
-\paragraph{\code{tests/test_data_download.py}}
-\begin{functionlist}
-\fn{FakeResponse.__init__ / raise_for_status / json}{Provide a deterministic requests-like response for downloader tests.}
-\fn{FakeSession.__init__ / get}{Queue fake responses and record API requests.}
-\fn{test_download_search_results_writes_pipeline_compatible_xml}{Verifies batch download output can be consumed by the XML service.}
-\fn{test_search_studies_uses_pagination}{Verifies page-token traversal and requested limits.}
-\fn{test_api_limit_has_clear_warning}{Verifies a clear warning for API-limited result sets.}
-\fn{test_large_noninteractive_download_requires_yes}{Verifies the large-download guard; its nested \code{fake_download()} prevents network access.}
-\end{functionlist}
-
-\paragraph{\code{tests/test_dict_mapping.py}}
-\begin{functionlist}
-\fn{test_update_routes_terms_and_preserves_existing_mapping}{Verifies routing, additions, and non-overwrite behavior.}
-\fn{test_reset_restores_all_snapshots}{Verifies all original dictionaries are restored.}
-\fn{test_missing_required_columns_is_clear}{Verifies a useful error for incompatible workbooks.}
-\end{functionlist}
-
-\paragraph{\code{tests/test_integrity_validation.py}}
-\begin{functionlist}
-\fn{FakeProvider.__init__ / default_model / generate}{Provide deterministic structured LLM responses.}
-\fn{_write_trial(path)}{Creates a minimal source trial fixture.}
-\fn{test_validation_computes_metrics_and_writes_report}{Checks classification, metrics, and workbook sheets.}
-\fn{test_missing_requested_trial_is_reported}{Checks missing NCT-ID error reporting.}
-\fn{test_unreturned_extraction_gets_a_conservative_assessment}{Checks the weak-support fallback for omitted rows.}
-\fn{test_validation_can_be_stopped_before_next_trial}{Checks cooperative cancellation between trials.}
-\end{functionlist}
-
-The four \code{tests/benchmark*.py} files are currently one-line/empty scaffolds and define no functions. They reserve locations for model, metric, semantic, and overall benchmarking.
-
-\subsection{Retained PySide backup}
-
-The \code{frontend_pyside_backup} tree is not the active UI. It preserves the earlier implementation for reference:
-
-\begin{itemize}
-\item \code{app.py}: \code{ModernAutoCritApp.__init__()} and \code{launch_app()} create and run the Qt application.
-\item \code{components/dictionary_editor.py}: constructor, \code{refresh()}, and \code{add_mapping()} implement the earlier dictionary editor.
-\item \code{components/file_table.py}: constructor, \code{load_dataframe()}, and \code{clear_table()} render tabular results.
-\item \code{views/analytics_view.py}: constructor, \code{refresh()}, \code{populate_table()}, and \code{open_output()} implement the earlier analytics page.
-\item \code{views/run_view.py}: \code{QtLogHandler} constructor/\code{emit()}, view constructor, \code{_build_ui()}, \code{_configure_logging()}, \code{select_xml_folder()}, \code{select_output_file()}, \code{start_pipeline()}, \code{pipeline_finished()}, \code{pipeline_failed()}, \code{_set_idle_state()}, \code{_clear_worker_references()}, \code{append_log()}, \code{clear_log()}, and \code{closeEvent()} implement threaded Qt execution.
-\item \code{views/settings_view.py}: constructor, \code{update_model_options()}, and \code{save()} implement earlier settings management.
-\item \code{workers/pipeline_worker.py}: constructor and \code{run()} wrap the pipeline in a Qt worker with signals.
-\end{itemize}
-
-\subsection{Empty compatibility and future-extension modules}
-
-The following contain no functions: package \code{__init__.py} markers; \code{backend/services/dictionary_services.py}; \code{backend/quality/metrics.py}; \code{backend/quality/validation_agent.py}; and the consistency/unit rule modules. Their presence should not be mistaken for implemented behavior. The singular \code{dictionary_service.py}, dedicated \code{backend/validation_agent} package, and numeric/terminology rule files contain the current implementations.
-
-\section{What changed from AutoCriteria}
-
-\begin{longtable}{p{0.20\textwidth}p{0.34\textwidth}p{0.39\textwidth}}
+\begin{longtable}{p{0.20\textwidth}p{0.72\textwidth}}
 \toprule
-Concern & Upstream AutoCriteria & Modern AutoCrit \\
+Column & Interpretation \\
 \midrule
 \endhead
-Code organization & A long extraction script combines prompts, LangChain invocation, retries, XML iteration, cleanup, and dataframe mutation \cite{autocriteria-repo}. & Modules and typed collaborators isolate core extraction, schemas, services, quality rules, validation, UI, and utilities. \\
-Model integration & LangChain \code{PromptTemplate}, \code{PipelinePromptTemplate}, \code{ChatOpenAI}, and \code{LLMChain} target GPT-4 \cite{autocriteria-repo}. & A provider contract and factory wrap the modern OpenAI Responses SDK; token usage and cost are first-class. OpenAI is implemented today, while other provider labels remain extension points. \\
-Execution & A command-line Python script processes files and writes output \cite{autocriteria-repo}. & Backend CLI plus a standalone Tkinter desktop application with configuration, progress, logs, dictionary editing, analytics, and integrity auditing. \\
-Configuration & API key and major behavior are embedded close to script execution. & Pydantic settings and JSON persistence separate provider, extraction, cost, directory, and dictionary configuration. \\
-Prompting/parsing & Large inclusion/exclusion templates and LangChain output parsing live beside control flow. & Prompt builders and defensive JSON parsing are separate, testable domain modules. \\
-Normalization & Extensive procedural cleanup occurs while appending dataframe rows. & A dedicated normalizer applies deterministic maps, produces unmapped-term reports, and separates exact/fuzzy duplicate analysis. \\
-Quality assurance & The upstream script focuses on extraction and cleanup. & Deterministic anomaly rules plus an independent LLM-assisted audit examine plausibility, terminology, source coverage, and unsupported rows. \\
-Data acquisition & The upstream repository directs users to prepare downloaded XML \cite{autocriteria-repo}. & A ClinicalTrials.gov v2 downloader searches, paginates, confirms large batches, and emits pipeline-compatible XML. \\
-Usability & Research-oriented command-line workflow. & Standalone desktop workflow, direct workbook access, persistent settings, and operational feedback; an in-browser option is planned. \\
-Extensibility & Changing a concern generally edits the central script. & Interfaces and layer boundaries allow providers, rules, views, dictionaries, validators, and exporters to evolve separately. \\
+Type & Whether the source criterion is inclusion or exclusion. \\
+Source criterion & Atomic text from the protocol; this preserves traceability to what the model interpreted. \\
+Entity & High-level governed clinical domain. \\
+Attribute & Human-readable attribute name; the smaller identifier is its stable machine key. \\
+Cleaned value & Normalized categorical assertion or numerical interval, with a unit when applicable. \\
+Confidence & Model-reported certainty, useful for triage but not a calibrated probability or proof of correctness. \\
+Review & Governance action produced by mapping review. \code{CONFIRM_EXISTING} means the criterion fits a supplied library attribute. \code{REQUIRE_NEW} means no existing candidate was adequate and a new attribute is proposed; a human should review it before library admission. Additional rejection or unresolved states, when present, mean the mapping must not be treated as verified. \\
 \bottomrule
 \end{longtable}
 
-Modern AutoCrit is a reimplementation and architectural evolution, not evidence that the upstream scientific results have automatically transferred. Any comparative performance claim requires a shared dataset, annotation protocol, model/version controls, and measured evaluation.
+A \code{REQUIRE_NEW} row is not an extraction failure. It is a controlled terminology outcome: the clinical statement was extracted, but the governed library lacks a sufficiently equivalent attribute. Conversely, \code{CONFIRM_EXISTING} confirms the selected mapping under the automated reviewer; it does not replace clinical validation.
 
-\section{Key milestones}
+\subsection{Clinical-distance output}
 
-\begin{enumerate}
-\item \textbf{Repository decomposition.} Established backend, frontend, configuration, data, documentation, output, and test boundaries, then moved working extraction behavior into core/services/schemas rather than one long script.
-\item \textbf{Modern SDK migration.} Replaced LangChain-dependent execution with direct modern OpenAI SDK usage and introduced a provider-neutral interface, response contract, factory, retries, usage accounting, and cost monitoring.
-\item \textbf{End-to-end pipeline.} Added XML ingestion, inclusion/exclusion splitting, chunked extraction, typed parsing, normalization, deduplication, unmapped-term reporting, and Excel export.
-\item \textbf{Standalone application.} First delivered a PySide GUI, then moved the active desktop interface to Tkinter for stability while retaining the earlier implementation as a backup.
-\item \textbf{Operational tooling.} Added settings persistence, live logs, background execution, progress reporting, dictionary management, analytics, downloader/update CLIs, and benchmark scaffolds.
-\item \textbf{Quality layer.} Added deterministic anomaly detection for numeric, unit, terminology, and missing-value problems.
-\item \textbf{Integrity agent.} Added an independent source-versus-output audit, estimated coverage/support metrics, multi-sheet reports, cancellation/progress, and evidence-grounded follow-up chat.
-\item \textbf{Dictionary expansion.} Grew active terminology maps, retained original snapshots, and added safe append/reset workflows.
-\end{enumerate}
+For a scalar observation $x$, target set $T$, full-relevance tolerance $\tau$, distance scale $s>0$, and weight $w$, the numerical tool conceptually evaluates
+\[
+  p(x,T)=w\,\min\!\left(1,\frac{\max(0,d(x,T)-\tau)}{s}\right),
+\]
+where $d(x,T)$ is zero inside the target interval and otherwise is the distance to its nearest boundary. Zero means fully compatible under the policy; one times the weight is the capped maximum penalty. The JSON output includes the observed value, target, tolerance, scale, raw clinical distance, normalized penalty, weighted penalty, and diagnostic explanation. These values quantify a declared policy; they are not treatment-effect estimates or medical advice.
 
-\section{Current limitations and technical debt}
+\section{Meaning of Errors}
 
-\begin{itemize}
-\item Only the OpenAI provider implementation is present even though settings and factory branches anticipate Anthropic, Gemini, and Ollama.
-\item Integrity metrics are generated from an LLM audit and should be labeled estimated until calibrated against clinician-reviewed annotations.
-\item Inclusion/exclusion heading detection is intentionally conservative and can fail on irregular registry formatting.
-\item Exact deduplication is active; fuzzy duplicate discovery exists but is advisory, and the settings flag for semantic deduplication does not itself constitute a complete embedding pipeline.
-\item Some placeholder/legacy modules and the older OpenAI client remain, creating ambiguity that should be resolved as interfaces stabilize.
-\item The desktop progress bar partly infers trial completion from logs rather than receiving structured pipeline progress events.
-\item Dictionary update suggestions currently depend on observed workbook terms and deterministic matching, not ontology identifiers or embedding confidence.
-\item Clinical terminology, thresholds, and generated findings require expert governance, versioning, provenance, and reproducible evaluation before clinical use.
-\end{itemize}
+Errors are returned in API JSON and, for background extraction, copied into the job's \code{error} field. The exception class identifies the failure category; the text identifies the violated rule.
 
-\section{Future work: toward an agentic eligibility-extraction system}
+\begin{longtable}{p{0.36\textwidth}p{0.56\textwidth}}
+\toprule
+Error or message & Meaning and response \\
+\midrule
+\endhead
+Enter an NCT ID or paste eligibility criteria text & Both inputs were blank. Provide either source. \\
+Invalid NCT ID / registry 404 & The identifier format is invalid or ClinicalTrials.gov has no matching study. Check the ID. \\
+Registry request or timeout error & The v2 API was unavailable, slow, or returned an unexpected response. Retry after checking network access. \\
+Study has no eligibility criteria & The registry record exists but exposes no criteria text usable by this pipeline. Paste the text manually if available. \\
+Eligibility headings or breakdown points missing & Segmentation could not identify usable inclusion/exclusion content, or the intermediate CSV is incomplete. Inspect the source formatting and preview segmentation. \\
+JSON decode/schema error & An HTTP body or LLM response was not valid JSON of the required shape. Run records identify the failing stage. \\
+Existing Attribute selection must use one of the supplied top candidate \code{attribute_id} values & The model claimed an existing mapping but invented or reused an ID outside the candidates retrieved for that specific criterion. This is a guardrail failure, not evidence that the chosen ID is clinically valid. Rerun; if repeated, inspect the recorded prompt/candidates or improve the prompt/model. \\
+Categorical, Sex/Gender, range, interval, or unit validation error & The selected value contradicts its schema, polarity, allowed labels, bounds, or canonical unit. Correct the input/library definition or review the LLM selection. \\
+Stale library revision or SHA-256 & The governed library changed after a preview was created. Regenerate the preview before applying it; this prevents overwriting concurrent updates. \\
+Attribute ID conflict/collision & Two incompatible definitions propose the same stable identifier. Reconcile or rename before applying. \\
+Job has no completed audit result & The result endpoint was requested before completion or after failure. Poll job status and inspect \code{error}. \\
+Missing API key / authentication error & The process did not load a valid provider credential. Put the key in the documented environment file or process environment and restart the server. \\
+Rate limit, quota, or provider error & The upstream model rejected or could not complete the request. Verify quota/model access and retry; the job will be marked failed rather than silently returning partial output. \\
+Request body is too large & The browser sent more than the server's 5 MB safety limit. Reduce the pasted source. \\
+Not found & The API route, static asset, or job ID does not exist. Verify the URL or job identifier. \\
+\bottomrule
+\end{longtable}
 
-The future goal is a supervised agentic system in which specialized components propose, verify, criticize, and improve clinical-trial eligibility extraction while preserving source evidence and human authority.
+The saved source, job record, breakdown, checkpoints, and LLM JSONL records form the diagnostic trail. Retrying the same trial is expected to work when inputs are unchanged; a completed matching cache is reused. A repeated candidate-selection error indicates nondeterministic or invalid model output and should be addressed at the recorded mapping stage rather than by deleting the terminology library.
 
-\subsection{Terminology grounding with RxNorm and ICD-10}
+\section{Persistence, Recovery, and Privacy}
 
-Research and, where licensing and fit permit, integrate established terminology sources. RxNorm can support normalized medications and ingredients; ICD-10 can support disease/category coding. The implementation should store source vocabulary, code, display term, version, match method, and confidence rather than replacing text with an unexplained label. Synonym resolution should retain the original phrase and source sentence, and ambiguous matches should be review tasks rather than silent substitutions.
+Runtime artifacts are organized beneath \code{runtime/eligcrit}: source documents, job records, point breakdowns, checkpoints, audits, provider records, and library snapshots. Atomic replacement protects JSON and JSONL records from partial writes. On startup, jobs left in \code{queued} or \code{running} are returned to the queue. The application binds to \code{127.0.0.1} by default, so it is locally accessible rather than a hosted multi-user system. Protocol text and model records may contain sensitive material; runtime directories and \code{.env} must remain untracked and access-controlled.
 
-\subsection{Embedding-assisted adaptive dictionaries}
-
-Add an embedding retrieval layer over reviewed canonical mappings. For an unseen term, retrieve candidates, combine semantic similarity with lexical/contextual evidence, and emit a ranked suggestion with confidence and provenance. A reviewer accepts, edits, or rejects the proposal. Accepted mappings enter a versioned dictionary and a regression set; automatic mutation of production dictionaries should be avoided until thresholds are empirically validated.
-
-\subsection{Reviewer/critic agent}
-
-Introduce a critic that receives source text, extracted rows, the validation agent's claims, and explicit evaluation criteria. It should test evidence alignment, index correctness, internal consistency, missed clauses, unsupported assertions, metric arithmetic, and uncertainty calibration. To reduce correlated errors, the critic should use independently phrased prompts and, when practical, a different model/provider. Disagreements should be escalated to human review and captured as evaluation data rather than decided by model confidence alone.
-
-\subsection{Browser-based deployment}
-
-Extract a stable application service/API boundary and add an optional browser UI while retaining the desktop client. Web deployment requires authentication, encrypted secret handling, job queues, cancellation, artifact storage, audit logs, concurrency/cost controls, and a clear policy that prohibits protected health information unless an appropriately secured deployment is established.
-
-\subsection{Proposed agentic loop}
+\section{Key Milestones}
 
 \begin{enumerate}
-\item An ingestion agent validates registry provenance and prepares trial text.
-\item A segmentation agent identifies inclusion/exclusion structure and atomic clauses.
-\item An extraction agent produces typed, source-grounded rows.
-\item A terminology agent proposes ontology and dictionary normalization with provenance.
-\item Deterministic rules screen numeric, unit, schema, and consistency failures.
-\item The current integrity agent audits source coverage and extraction support.
-\item A reviewer/critic agent challenges both extraction and validation findings.
-\item A resolution stage routes disagreements and low-confidence items to a human reviewer.
-\item Approved corrections update evaluation fixtures and, through controlled review, adaptive dictionaries.
+  \item Reproduced the protocol-to-criteria concept from AutoCriteria.
+  \item Removed LangChain and introduced direct, provider-neutral OpenAI SDK integration.
+  \item Refactored the monolithic workflow into backend services, schemas, processing modules, and tests.
+  \item Built a standalone application and subsequently replaced its desktop GUI with the current full-width browser application.
+  \item Added ClinicalTrials.gov v2 input, atomic segmentation, structured normalization, governed EAV retrieval, and critic/reconciliation logic.
+  \item Added recoverable jobs, atomic persistence, cache fingerprints, audit records, and clinical-distance analysis.
 \end{enumerate}
 
-Every agent transition should use a versioned schema, retain the exact source span, record model/prompt/vocabulary versions and cost, and be replayable. Release gates should be based on held-out, clinician-reviewed precision/recall and safety metrics, not model self-evaluation. The system should assist extraction and review; final interpretations of patient eligibility remain with qualified trial personnel.
+\section{Future Work}
 
-\section{Recommended evaluation program}
+\subsection{Fine-tuned embeddings for ``seemingly similar'' criteria}
+
+Generic sentence embeddings overvalue lexical overlap. For example, \code{Age >= 18} and \code{Age <= 18} share nearly every token and may receive high cosine similarity, even though their admissible populations differ sharply. A clinical-criteria representation must distinguish semantic topic similarity from constraint equivalence.
+
+The proposed model will use the current extractor as a structured supervision engine. Each criterion is represented by its clinical concept, comparator, threshold or category, unit, inclusion/exclusion polarity, and normalized interval. Development should include:
 
 \begin{itemize}
-\item Build a stratified, clinician-annotated corpus across disease areas, phases, criteria formats, and numerical/temporal complexity.
-\item Measure clause segmentation, entity/attribute/value extraction, temporality, ontology grounding, atomicity, hallucination rate, and full-source coverage separately.
-\item Compare the modern pipeline with the reproducible upstream baseline under controlled model availability, noting that original GPT-4 behavior may not be exactly reproducible.
-\item Calibrate validator and critic confidence against human adjudication; measure whether the critic improves error detection rather than merely increasing disagreement.
-\item Maintain adversarial cases for prompt injection in trial text, malformed XML/workbooks, ambiguous terminology, unit traps, negation, exceptions, and nested criteria.
-\item Version datasets, prompts, models, dictionaries, ontology releases, and metrics so changes are attributable.
+  \item a text encoder fine-tuned with contrastive learning so criteria for the same concept remain discoverable while comparator flips, negation, exclusion polarity, and clinically material threshold changes become hard negatives;
+  \item auxiliary heads for entity/attribute classification, comparator and negation classification, typed value extraction, and relation labels such as equivalent, subset, superset, overlap, disjoint, or unknown;
+  \item interval-aware supervision in which structured population overlap supplies a target distance, rather than assuming that lexical cosine distance is clinically meaningful;
+  \item reviewed \code{CONFIRM_EXISTING} mappings as positive pairs, reconciled aliases as additional positives, and rejected or corrected mappings as high-value negatives;
+  \item retrieval followed by deterministic constraint comparison or an LLM-assisted adjudicator, with the latter required to return structured evidence rather than an unsupported scalar;
+  \item calibration and abstention so ambiguous criteria are surfaced for review instead of forced into misleading proximity.
 \end{itemize}
+
+A practical loss can combine contrastive embedding loss with operator, polarity, value, and relation losses. Evaluation must be split by clinical attribute to limit leakage and must report retrieval recall, ranking quality, relation accuracy, calibration, and threshold sensitivity. A mandatory challenge set should include \code{Age >= 18} versus \code{Age <= 18}, nearby age thresholds, unit conversions, negation, and inclusion/exclusion reversals. The model should not be released if it ranks a comparator-flipped criterion as equivalent merely because the sentences are lexically similar.
+
+The resulting representation can support duplicate detection, terminology suggestions, and clustering. More importantly, its constraint-aware distance can propagate into trial design: quantify how far a proposed eligibility rule moves from a reference population, simulate the resulting coverage and recruitment changes, and examine whether relaxing or tightening a rule changes power, sample size, or expected generalizability.
+
+\subsection{Broader roadmap}
+
+Additional work includes terminology links to RxNorm and ICD-10 for automatic cleaning, a separately evaluated reviewer/critic agent, adaptive dictionary updates based on embeddings and governed human approval, multi-user hosted deployment with authentication, and downstream protocol-to-design and protocol-to-analysis agents. The long-term goal is an agentic clinical-trial system that extracts eligibility constraints, validates them, compares populations, simulates trial consequences, and produces auditable statistical design artifacts while keeping clinicians and study coordinators in the approval loop.
+
+\section{Conclusion}
+
+The current project is no longer a single-script extraction demonstration. It is a browser-delivered, layered application with registry ingestion, atomic segmentation, structured LLM extraction, EAV governance, reviewer logic, value normalization, clinical-distance analysis, persistence, recovery, and explicit audit outputs. Its next technical challenge is to turn structured criteria into a constraint-aware population representation: one that recognizes shared clinical concepts without confusing opposite or materially different eligibility rules.
 
 \begin{thebibliography}{9}
 \bibitem{autocriteria-repo}
-S. Datta et al., ``AutoCriteria source repository.''
-\url{https://github.com/surdatta/autocriteria/tree/main}
+S. Datta, \emph{AutoCriteria}, GitHub repository.\\
+\url{https://github.com/surdatta/autocriteria}
+
+\bibitem{elig-crit-repo}
+Y. Zhao, \emph{EligCrit}, GitHub repository.\\
+\url{https://github.com/JackZhao1998/EligCrit}
 
 \bibitem{autocriteria-paper}
-S. Datta et al., ``AutoCriteria: a generalizable clinical trial eligibility criteria extraction system powered by large language models,'' Journal of the American Medical Informatics Association.
-\url{https://pmc.ncbi.nlm.nih.gov/articles/PMC10797270/}
+S. Datta et al., \emph{AutoCriteria: A Generalizable Clinical Trial Eligibility Criteria Extraction System Powered by Large Language Models}, 2023.\\
+\url{https://arxiv.org/abs/2304.06096}
 \end{thebibliography}
 
 \end{document}

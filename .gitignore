@@ -47,3 +47,5 @@ docs/notes/
 
 # Recoverable local browser jobs, checkpoints, and LLM call records
 runtime/
+data/
+notebooks/
