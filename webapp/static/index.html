@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Automated Eligibility Criteria Extraction</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header><div><p class="eyebrow">Clinical protocol intelligence</p><h1>Automated Eligibility Criteria Extraction</h1></div><span id="health">Connecting…</span></header>
+  <main>
+    <nav><button data-tab="extract" class="active">Extract</button><button data-tab="distance">Clinical distance</button><button data-tab="library">EAV library</button></nav>
+    <section id="extract" class="panel active">
+      <h2>Protocol eligibility extraction</h2>
+      <p>Atomic segmentation, governed EAV mapping, validation, reconciliation, and recoverable job records.</p>
+      <label>Trial ID <input id="trial-id" placeholder="NCT01234567"></label>
+      <label>Eligibility criteria <span class="muted">(optional when an NCT ID is supplied)</span><textarea id="criteria" rows="14" placeholder="Leave blank to retrieve the protocol from ClinicalTrials.gov, or paste criteria here.&#10;&#10;Inclusion Criteria:&#10;- Age 18 to 75 years&#10;&#10;Exclusion Criteria:&#10;- Severe renal impairment"></textarea></label>
+      <div class="actions"><button id="preview">Preview deterministic segmentation</button><button id="run" class="primary">Run AI extraction</button></div>
+      <p id="job-status" class="muted"></p>
+      <div id="cleaned-results" hidden><h3>Cleaned eligibility criteria</h3><div class="table-wrap"><table><thead><tr><th>Type</th><th>Source criterion</th><th>Entity</th><th>Attribute</th><th>Cleaned value</th><th>Confidence</th><th>Review</th></tr></thead><tbody id="cleaned-body"></tbody></table></div><details><summary>Technical job and audit JSON</summary><pre id="extract-output">Results will appear here.</pre></details></div>
+      <pre id="job-output">Results will appear here.</pre>
+    </section>
+    <section id="distance" class="panel">
+      <h2>Clinical-distance penalty</h2>
+      <p>Measure how far an observed trial value falls outside a target population. For example, compare an observed minimum age of 60 with a target age of 18. Values inside a target range have distance 0 and full relevance.</p>
+      <p class="hint"><strong>Tolerance</strong> is the clinically negligible difference. <strong>Distance scale</strong> controls how rapidly relevance falls; larger values penalize differences less severely.</p>
+      <div class="grid"><label>Observed value<input id="observed" type="number" value="60"></label><label>Target lower<input id="lower" type="number" value="18"></label><label>Target upper<input id="upper" type="number" placeholder="optional"></label><label>Tolerance<input id="tolerance" type="number" value="0"></label><label>Distance scale<input id="scale" type="number" value="20"></label></div>
+      <button id="calculate" class="primary">Calculate relevance</button><pre id="distance-output">Enter a comparison.</pre>
+    </section>
+    <section id="library" class="panel"><h2>Governed EAV terminology</h2><p>This is the controlled dictionary used to turn eligibility prose into computable Entity–Attribute–Value records. Extraction selects an existing Attribute when possible; unmatched concepts are proposed for review instead of silently changing this library.</p><p class="hint">This view is currently read-only. Search by clinical concept, Entity, or Attribute ID.</p><label>Search library<input id="library-search" placeholder="age, renal function, biomarker…"></label><p id="library-summary">Loading…</p><div id="library-list"></div></section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

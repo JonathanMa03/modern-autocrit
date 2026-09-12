@@ -15,13 +15,7 @@ env/
 # Environment variables
 .env
 
-# Local data / outputs
-data/*
-!data/.gitkeep
-
-outputs/*
-!outputs/.gitkeep
-
+# Local logs
 logs/*
 !logs/.gitkeep
 
@@ -51,4 +45,5 @@ docs/references/
 
 docs/notes/
 
-logs/
+# Recoverable local browser jobs, checkpoints, and LLM call records
+runtime/

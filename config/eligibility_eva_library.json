@@ -1,0 +1,2820 @@
+{
+  "schema_version": "eligcrit.eligibility_eva_library.v1",
+  "library_name": "Human-calibrated eligibility EVA terminology",
+  "revision": 13,
+  "created_at": "2026-07-28T00:00:00+00:00",
+  "updated_at": "2026-07-30T00:05:30.502336+00:00",
+  "value_definitions": {
+    "Categorical": [
+      "Included",
+      "Excluded"
+    ],
+    "SexGender": [
+      "male",
+      "female",
+      "all"
+    ],
+    "Numerical": [
+      "Range",
+      "Point"
+    ],
+    "range_notation": "Mathematical interval notation: [a, b], (a, b), [a, b), (a, b], with -inf or +inf for an open bound.",
+    "point_notation": "Exact numeric scalar without a comparison operator."
+  },
+  "entities": [
+    {
+      "entity_id": "biomarker",
+      "canonical_name": "Biomarker",
+      "description": "Molecular, imaging, physiological, or other measured biological characteristics.",
+      "aliases": [],
+      "active": true
+    },
+    {
+      "entity_id": "comorbidity",
+      "canonical_name": "Comorbidity",
+      "description": "Concurrent diseases or clinical conditions relevant to eligibility.",
+      "aliases": [
+        "Comorbid condition"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "consent",
+      "canonical_name": "Consent",
+      "description": "Reviewer-approved eligibility Entity from NCT00657163:0011.",
+      "aliases": [],
+      "active": true
+    },
+    {
+      "entity_id": "contraceptive",
+      "canonical_name": "Contraceptive",
+      "description": "Pregnancy, reproductive status, and contraception-related eligibility concepts.",
+      "aliases": [
+        "Reproductive status"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "demographic",
+      "canonical_name": "Demographic",
+      "description": "Participant demographic characteristics.",
+      "aliases": [
+        "Demographics"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "diagnosis",
+      "canonical_name": "Diagnosis",
+      "description": "Index diagnoses, disease subtypes, and diagnostic history.",
+      "aliases": [
+        "Disease"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "lab_test",
+      "canonical_name": "Lab test",
+      "description": "Laboratory measurements and laboratory-defined eligibility conditions.",
+      "aliases": [
+        "Laboratory"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "other",
+      "canonical_name": "Other",
+      "description": "Reviewer-approved eligibility Entity from NCT00657163:0015.",
+      "aliases": [],
+      "active": true
+    },
+    {
+      "entity_id": "previous_treatment",
+      "canonical_name": "Previous Treatment",
+      "description": "Prior or concomitant medications, procedures, devices, and therapies.",
+      "aliases": [
+        "Treatment history",
+        "Prior treatment"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "score",
+      "canonical_name": "Score",
+      "description": "Clinical scales, performance measures, and structured assessment scores.",
+      "aliases": [
+        "Clinical score"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "survival",
+      "canonical_name": "Survival",
+      "description": "Life expectancy, prognosis, and survival-related eligibility concepts.",
+      "aliases": [
+        "Prognosis"
+      ],
+      "active": true
+    },
+    {
+      "entity_id": "vital",
+      "canonical_name": "Vital",
+      "description": "Vital signs and related physiological measurements.",
+      "aliases": [
+        "Vital sign"
+      ],
+      "active": true
+    }
+  ],
+  "attributes": [
+    {
+      "attribute_id": "active_abduction_additional_digit_count",
+      "canonical_name": "active_abduction_additional_digit_count",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active abduction additional digit count under Biomarker.",
+      "aliases": [
+        "active_abduction_additional_digit_count"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "digits",
+      "active": true
+    },
+    {
+      "attribute_id": "active_thumb_abduction",
+      "canonical_name": "active_thumb_abduction",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active thumb abduction under Biomarker.",
+      "aliases": [
+        "active_thumb_abduction"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "thumb_abduction_extension_range_of_motion",
+      "canonical_name": "active_thumb_abduction_extension_range_of_motion",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active thumb abduction extension range of motion under Biomarker.",
+      "aliases": [
+        "active_thumb_abduction_extension_range_of_motion"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "degrees",
+      "active": true
+    },
+    {
+      "attribute_id": "active_thumb_extension",
+      "canonical_name": "active_thumb_extension",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active thumb extension under Biomarker.",
+      "aliases": [
+        "active_thumb_extension"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "active_wrist_extension",
+      "canonical_name": "active_wrist_extension",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active wrist extension under Biomarker.",
+      "aliases": [
+        "active_wrist_extension"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "degrees",
+      "active": true
+    },
+    {
+      "attribute_id": "attribute_c72f9fef2170edff",
+      "canonical_name": "active_wrist_extension_ability",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active wrist extension ability under Biomarker.",
+      "aliases": [
+        "active_wrist_extension_ability"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "active_wrist_flexion",
+      "canonical_name": "active_wrist_flexion",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for active wrist flexion under Biomarker.",
+      "aliases": [
+        "active_wrist_flexion"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "complete_m1_hand_knob_lesion_with_absent_tms_meps",
+      "canonical_name": "complete_m1_hand_knob_lesion_with_absent_tms_meps",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for complete m1 hand knob lesion with absent tms meps under Biomarker.",
+      "aliases": [
+        "complete_m1_hand_knob_lesion_with_absent_tms_meps"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "active_extension_additional_digit_count",
+      "canonical_name": "non_thumb_digit_active_extension",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for non thumb digit active extension under Biomarker.",
+      "aliases": [
+        "non_thumb_digit_active_extension"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "non_thumb_digit_joint_extension",
+      "canonical_name": "non_thumb_digit_joint_extension_range_of_motion",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for non thumb digit joint extension range of motion under Biomarker.",
+      "aliases": [
+        "non_thumb_digit_joint_extension_range_of_motion"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "degrees",
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_lesion_maximum_diameter",
+      "canonical_name": "sensorimotor_premotor_brain_lesion_maximum_diameter",
+      "entity_id": "biomarker",
+      "description": "Reviewer-verified eligibility Attribute for sensorimotor premotor brain lesion maximum diameter under Biomarker.",
+      "aliases": [
+        "sensorimotor_premotor_brain_lesion_maximum_diameter"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "cm",
+      "active": true
+    },
+    {
+      "attribute_id": "active_malignancy",
+      "canonical_name": "active_malignancy",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for active malignancy under Comorbidity.",
+      "aliases": [
+        "active_malignancy"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "alcohol_abuse",
+      "canonical_name": "alcohol_abuse",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for alcohol abuse under Comorbidity.",
+      "aliases": [
+        "alcohol_abuse"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "aphasia_interfering_with_scale_evaluation",
+      "canonical_name": "aphasia_interfering_with_scale_evaluation",
+      "entity_id": "comorbidity",
+      "description": "Aphasia or language impairment severe enough to prevent reliable evaluation using clinical rating scales.",
+      "aliases": [
+        "Aphasia preventing correct evaluation of depression scales",
+        "aphasia preventing evaluation",
+        "aphasia impairing evaluation",
+        "language impairment affecting assessment",
+        "communication impairment affecting scale assessment",
+        "aphasia preventing depression scale evaluation",
+        "aphasia preventing motor scale evaluation",
+        "aphasia_interfering_with_scale_evaluation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "aphasia_preventing_scale_evaluation",
+      "canonical_name": "aphasia_preventing_scale_evaluation",
+      "entity_id": "comorbidity",
+      "description": "Aphasia severe enough to prevent accurate evaluation using required clinical motor or depression scales.",
+      "aliases": [
+        "Aphasia preventing correct evaluation of motor scales",
+        "aphasia preventing correct evaluation",
+        "aphasia affecting motor scale assessment",
+        "aphasia affecting depression scale assessment",
+        "aphasia interfering with clinical scale assessment",
+        "communication impairment preventing scale evaluation",
+        "aphasia_preventing_scale_evaluation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": false
+    },
+    {
+      "attribute_id": "mental_status_fluctuations",
+      "canonical_name": "clinically_significant_mental_status_fluctuations",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for clinically significant mental status fluctuations under Comorbidity.",
+      "aliases": [
+        "clinically_significant_mental_status_fluctuations"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "coexistent_neuromuscular_disorder_affecting_upper_extremity_motor_function",
+      "canonical_name": "coexistent_neuromuscular_disorder_affecting_upper_extremity_motor_function",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for coexistent neuromuscular disorder affecting upper extremity motor function under Comorbidity.",
+      "aliases": [
+        "coexistent_neuromuscular_disorder_affecting_upper_extremity_motor_function"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "preserved_cognitive_function",
+      "canonical_name": "cognitive_impairment",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for cognitive impairment under Comorbidity.",
+      "aliases": [
+        "cognitive_impairment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "cranial_bone_defect",
+      "canonical_name": "cranial_bone_defect",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for cranial bone defect under Comorbidity.",
+      "aliases": [
+        "cranial_bone_defect"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "depression_requiring_pharmacological_treatment",
+      "canonical_name": "depression_requiring_pharmacological_treatment",
+      "entity_id": "comorbidity",
+      "description": "Depression or depressive disorder requiring pharmacological treatment or medication management, such as antidepressant therapy.",
+      "aliases": [
+        "Depression requiring pharmacological treatment",
+        "depression requiring medication",
+        "pharmacologically treated depression",
+        "treated depression",
+        "antidepressant-treated depression",
+        "depression_requiring_pharmacological_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "drug_addiction",
+      "canonical_name": "drug_addiction",
+      "entity_id": "comorbidity",
+      "description": "Drug addiction or clinically relevant substance dependence/substance use disorder as an eligibility-constraining comorbid condition.",
+      "aliases": [
+        "Drug addiction",
+        "substance addiction",
+        "substance dependence",
+        "drug dependence",
+        "substance use disorder",
+        "addictive disorder",
+        "substance abuse",
+        "drug_addiction"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "history_of_drug_overdose",
+      "canonical_name": "drug_overdose_history",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for drug overdose history under Comorbidity.",
+      "aliases": [
+        "drug_overdose_history"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "epidural_hematoma",
+      "canonical_name": "epidural_hematoma",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for epidural hematoma under Comorbidity.",
+      "aliases": [
+        "epidural_hematoma"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "history_of_epileptic_seizures",
+      "canonical_name": "epileptic_seizure_history",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for epileptic seizure history under Comorbidity.",
+      "aliases": [
+        "epileptic_seizure_history"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "diagnosis_with_fatigue_as_known_symptom",
+      "canonical_name": "fatigue_associated_diagnosis",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for fatigue associated diagnosis under Comorbidity.",
+      "aliases": [
+        "fatigue_associated_diagnosis"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "fluoxetine_allergy",
+      "canonical_name": "fluoxetine_allergy",
+      "entity_id": "comorbidity",
+      "description": "Known allergy or hypersensitivity reaction to fluoxetine.",
+      "aliases": [
+        "Allergy to fluoxetine",
+        "fluoxetine allergy",
+        "fluoxetine hypersensitivity",
+        "Prozac allergy",
+        "fluoxetine_allergy"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "fluoxetine_contraindication",
+      "canonical_name": "fluoxetine_contraindication",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for fluoxetine contraindication under Comorbidity.",
+      "aliases": [
+        "fluoxetine_contraindication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "hepatic_failure",
+      "canonical_name": "hepatic_failure",
+      "entity_id": "comorbidity",
+      "description": "Presence of hepatic failure or clinically significant hepatic insufficiency/dysfunction relevant to eligibility.",
+      "aliases": [
+        "Hepatic failure",
+        "liver failure",
+        "hepatic insufficiency",
+        "hepatic dysfunction",
+        "hepatic impairment",
+        "hepatic_failure"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "intracranial_hypertension",
+      "canonical_name": "intracranial_hypertension",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for intracranial hypertension under Comorbidity.",
+      "aliases": [
+        "intracranial_hypertension"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "intracranial_tumor",
+      "canonical_name": "intracranial_tumor",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for intracranial tumor under Comorbidity.",
+      "aliases": [
+        "intracranial_tumor"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ischemic_peripheral_disease_with_upper_extremity_sensorimotor_impairment",
+      "canonical_name": "ischemic_peripheral_disease_with_upper_extremity_sensorimotor_impairment",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for ischemic peripheral disease with upper extremity sensorimotor impairment under Comorbidity.",
+      "aliases": [
+        "ischemic_peripheral_disease_with_upper_extremity_sensorimotor_impairment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "immunodeficiency",
+      "canonical_name": "known_immunodeficiency",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for known immunodeficiency under Comorbidity.",
+      "aliases": [
+        "known_immunodeficiency"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_premotor_brain_lesion",
+      "canonical_name": "large_sensorimotor_premotor_brain_lesion",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for large sensorimotor premotor brain lesion under Comorbidity.",
+      "aliases": [
+        "large_sensorimotor_premotor_brain_lesion"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "levodopa_carbidopa_hypersensitivity",
+      "canonical_name": "levodopa_carbidopa_hypersensitivity",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for levodopa carbidopa hypersensitivity under Comorbidity.",
+      "aliases": [
+        "levodopa_carbidopa_hypersensitivity"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "life_threatening_illness",
+      "canonical_name": "life_threatening_illness",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for life threatening illness under Comorbidity.",
+      "aliases": [
+        "life_threatening_illness"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "medical_instability",
+      "canonical_name": "medical_or_mental_instability_preventing_protocol_timeline",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for medical or mental instability preventing protocol timeline under Comorbidity.",
+      "aliases": [
+        "medical_or_mental_instability_preventing_protocol_timeline"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "history_of_uncontrolled_neuropsychiatric_disorder_despite_medication_affecting_study_participation",
+      "canonical_name": "medication_uncontrolled_neuropsychiatric_disorder_affecting_participation",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for medication uncontrolled neuropsychiatric disorder affecting participation under Comorbidity.",
+      "aliases": [
+        "medication_uncontrolled_neuropsychiatric_disorder_affecting_participation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "modafinil_contraindication",
+      "canonical_name": "modafinil_contraindication",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for modafinil contraindication under Comorbidity.",
+      "aliases": [
+        "modafinil_contraindication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "mri_scanning_contraindication",
+      "canonical_name": "mri_scanning_contraindication",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for mri scanning contraindication under Comorbidity.",
+      "aliases": [
+        "mri_scanning_contraindication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "coexistent_neurological_disorder_affecting_study_participation",
+      "canonical_name": "neurological_disorder_affecting_study_participation",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for neurological disorder affecting study participation under Comorbidity.",
+      "aliases": [
+        "neurological_disorder_affecting_study_participation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ongoing_aspiration_difficulties",
+      "canonical_name": "ongoing_aspiration_difficulties",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for ongoing aspiration difficulties under Comorbidity.",
+      "aliases": [
+        "ongoing_aspiration_difficulties"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ongoing_dysphagia",
+      "canonical_name": "ongoing_swallowing_or_aspiration_difficulty",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for ongoing swallowing or aspiration difficulty under Comorbidity.",
+      "aliases": [
+        "ongoing_swallowing_or_aspiration_difficulty"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "permanent_renal_failure",
+      "canonical_name": "permanent_renal_failure",
+      "entity_id": "comorbidity",
+      "description": "Persistent renal failure or permanent clinically significant renal dysfunction relevant to eligibility, including cases defined by elevated creatinine in the source criterion.",
+      "aliases": [
+        "Permanent Renal failure",
+        "chronic renal failure",
+        "kidney failure",
+        "renal insufficiency",
+        "renal impairment",
+        "impaired renal function",
+        "permanent_renal_failure"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "persistent_self_reported_fatigue",
+      "canonical_name": "persistent_self_reported_fatigue",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for persistent self reported fatigue under Comorbidity.",
+      "aliases": [
+        "persistent_self_reported_fatigue"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "personality_disorder",
+      "canonical_name": "personality_disorder_interfering_with_protocol_adherence",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for personality disorder interfering with protocol adherence under Comorbidity.",
+      "aliases": [
+        "personality_disorder_interfering_with_protocol_adherence"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "polyneuropathy_with_upper_extremity_sensorimotor_impairment",
+      "canonical_name": "polyneuropathy_with_upper_extremity_sensorimotor_impairment",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for polyneuropathy with upper extremity sensorimotor impairment under Comorbidity.",
+      "aliases": [
+        "polyneuropathy_with_upper_extremity_sensorimotor_impairment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "poor_prognosis_comorbidity",
+      "canonical_name": "poor_prognosis_comorbidity",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for poor prognosis comorbidity under Comorbidity.",
+      "aliases": [
+        "poor_prognosis_comorbidity"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_dementia",
+      "canonical_name": "pre_existing_dementia",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for pre existing dementia under Comorbidity.",
+      "aliases": [
+        "pre_existing_dementia"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_depression",
+      "canonical_name": "pre_existing_depression",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for pre existing depression under Comorbidity.",
+      "aliases": [
+        "pre_existing_depression"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_sensorimotor_brain_lesion",
+      "canonical_name": "pre_existing_large_sensorimotor_premotor_brain_lesion",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for pre existing large sensorimotor premotor brain lesion under Comorbidity.",
+      "aliases": [
+        "pre_existing_large_sensorimotor_premotor_brain_lesion"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_existing_other_neuropsychiatric_disease",
+      "canonical_name": "pre_existing_neuropsychiatric_disease",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for pre existing neuropsychiatric disease under Comorbidity.",
+      "aliases": [
+        "pre_existing_neuropsychiatric_disease"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_stroke_upper_extremity_injury_or_condition_limiting_use",
+      "canonical_name": "pre_stroke_upper_extremity_injury_or_condition_limiting_use",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for pre stroke upper extremity injury or condition limiting use under Comorbidity.",
+      "aliases": [
+        "pre_stroke_upper_extremity_injury_or_condition_limiting_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "prior_bilateral_vagus_nerve_injury",
+      "canonical_name": "prior_vagus_nerve_injury",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for prior vagus nerve injury under Comorbidity.",
+      "aliases": [
+        "prior_vagus_nerve_injury"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "psychosis",
+      "canonical_name": "psychosis_interfering_with_protocol_adherence",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for psychosis interfering with protocol adherence under Comorbidity.",
+      "aliases": [
+        "psychosis_interfering_with_protocol_adherence"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "retained_metallic_foreign_body",
+      "canonical_name": "retained_metallic_foreign_body",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for retained metallic foreign body under Comorbidity.",
+      "aliases": [
+        "retained_metallic_foreign_body"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "scalp_lesion_at_electrode_site",
+      "canonical_name": "scalp_lesion_at_electrode_site",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for scalp lesion at electrode site under Comorbidity.",
+      "aliases": [
+        "scalp_lesion_at_electrode_site"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "severe_aphasia",
+      "canonical_name": "severe_aphasia_limiting_command_following",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for severe aphasia limiting command following under Comorbidity.",
+      "aliases": [
+        "severe_aphasia_limiting_command_following"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "subdural_hematoma",
+      "canonical_name": "subdural_hematoma",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for subdural hematoma under Comorbidity.",
+      "aliases": [
+        "subdural_hematoma"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "self_harm",
+      "canonical_name": "suicide_attempt_or_self_harm",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for suicide attempt or self harm under Comorbidity.",
+      "aliases": [
+        "suicide_attempt_or_self_harm"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "suicide_attempt",
+      "canonical_name": "suicide_attempt_or_self_harm_history",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for suicide attempt or self harm history under Comorbidity.",
+      "aliases": [
+        "suicide_attempt_or_self_harm_history"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "tms_contraindication",
+      "canonical_name": "transcranial_magnetic_stimulation_contraindication",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for transcranial magnetic stimulation contraindication under Comorbidity.",
+      "aliases": [
+        "transcranial_magnetic_stimulation_contraindication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "history_of_uncontrolled_depression_despite_medication_affecting_study_participation",
+      "canonical_name": "uncontrolled_depression_despite_medication",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for uncontrolled depression despite medication under Comorbidity.",
+      "aliases": [
+        "uncontrolled_depression_despite_medication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "uncontrolled_hypertension_despite_medical_treatment_at_randomization",
+      "canonical_name": "uncontrolled_hypertension_despite_medical_treatment_at_randomization",
+      "entity_id": "comorbidity",
+      "description": "Reviewer-verified eligibility Attribute for uncontrolled hypertension despite medical treatment at randomization under Comorbidity.",
+      "aliases": [
+        "uncontrolled_hypertension_despite_medical_treatment_at_randomization"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_provide_informed_consent",
+      "canonical_name": "capacity_to_provide_informed_consent",
+      "entity_id": "consent",
+      "description": "Reviewer-verified eligibility Attribute for capacity to provide informed consent under Consent.",
+      "aliases": [
+        "capacity_to_provide_informed_consent"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "informed_consent_obtained",
+      "canonical_name": "informed_consent_obtained",
+      "entity_id": "consent",
+      "description": "Requirement that informed consent or legally acceptable proxy/surrogate consent has been obtained for trial participation.",
+      "aliases": [
+        "Informed consent obtained from the subject or a member of his family",
+        "informed consent",
+        "consent obtained",
+        "subject consent",
+        "proxy consent",
+        "surrogate consent",
+        "family member consent",
+        "consent authorization",
+        "informed_consent_obtained"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "lactation",
+      "canonical_name": "lactation",
+      "entity_id": "contraceptive",
+      "description": "Participant lactation or breastfeeding status relevant to eligibility.",
+      "aliases": [
+        "breast-feeding woman",
+        "breastfeeding",
+        "breast-feeding",
+        "lactating",
+        "nursing",
+        "breastfeeding woman",
+        "lactating woman",
+        "nursing woman",
+        "lactation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "medically_reliable_contraception_use",
+      "canonical_name": "medically_reliable_contraception_use",
+      "entity_id": "contraceptive",
+      "description": "Reviewer-verified eligibility Attribute for medically reliable contraception use under Contraceptive.",
+      "aliases": [
+        "medically_reliable_contraception_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "intention_to_become_pregnant",
+      "canonical_name": "planned_pregnancy_during_study",
+      "entity_id": "contraceptive",
+      "description": "Reviewer-verified eligibility Attribute for planned pregnancy during study under Contraceptive.",
+      "aliases": [
+        "planned_pregnancy_during_study"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pregnancy",
+      "canonical_name": "pregnancy",
+      "entity_id": "contraceptive",
+      "description": "Participant pregnancy status as an eligibility concept.",
+      "aliases": [
+        "Pregnant woman",
+        "pregnant",
+        "pregnant women",
+        "pregnancy status",
+        "pregnancy"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "reproductive_potential_without_valid_contraception",
+      "canonical_name": "reproductive_potential_without_valid_contraception",
+      "entity_id": "contraceptive",
+      "description": "Participant has reproductive potential and is not using valid or effective contraception.",
+      "aliases": [
+        "Woman able to procreate without valid contraception",
+        "woman of childbearing potential without valid contraception",
+        "female able to procreate without valid contraception",
+        "reproductive potential without effective contraception",
+        "childbearing potential without contraception",
+        "reproductive_potential_without_valid_contraception"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "participant_age",
+      "canonical_name": "participant_age",
+      "entity_id": "demographic",
+      "description": "Participant age at eligibility assessment or enrollment.",
+      "aliases": [
+        "aged from 18 to 85",
+        "age",
+        "participant age",
+        "age in years",
+        "years of age",
+        "participant_age"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "years",
+      "active": true
+    },
+    {
+      "attribute_id": "sex_gender",
+      "canonical_name": "sex_gender",
+      "entity_id": "demographic",
+      "description": "Participant sex or gender eligibility category: male, female, or all.",
+      "aliases": [
+        "sex",
+        "gender",
+        "participant sex",
+        "participant gender",
+        "biological sex",
+        "men",
+        "women",
+        "men and women",
+        "all genders",
+        "both sexes",
+        "sex_gender"
+      ],
+      "value_type": "SexGender",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "bilateral_brainstem_ischemic_stroke",
+      "canonical_name": "bilateral_brainstem_ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for bilateral brainstem ischemic stroke under Diagnosis.",
+      "aliases": [
+        "bilateral_brainstem_ischemic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "bihemispheric_ischemic_stroke",
+      "canonical_name": "bilateral_ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for bilateral ischemic stroke under Diagnosis.",
+      "aliases": [
+        "bilateral_ischemic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "bilateral_motor_impairment",
+      "canonical_name": "bilateral_motor_impairment",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for bilateral motor impairment under Diagnosis.",
+      "aliases": [
+        "bilateral_motor_impairment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "brain_imaging_compatible_with_intracerebral_hemorrhage",
+      "canonical_name": "brain_imaging_compatible_intracerebral_hemorrhage",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for brain imaging compatible intracerebral hemorrhage under Diagnosis.",
+      "aliases": [
+        "brain_imaging_compatible_intracerebral_hemorrhage"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "attribute_0863e915208d6860",
+      "canonical_name": "clinically_significant_persistent_focal_neurological_deficit",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for clinically significant persistent focal neurological deficit under Diagnosis.",
+      "aliases": [
+        "clinically_significant_persistent_focal_neurological_deficit"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "first_clinically_overt_stroke",
+      "canonical_name": "first_clinically_overt_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for first clinically overt stroke under Diagnosis.",
+      "aliases": [
+        "first_clinically_overt_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "hemispatial_neglect",
+      "canonical_name": "hemispatial_neglect",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for hemispatial neglect under Diagnosis.",
+      "aliases": [
+        "hemispatial_neglect"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "history_of_hemorrhagic_stroke",
+      "canonical_name": "history_of_hemorrhagic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for history of hemorrhagic stroke under Diagnosis.",
+      "aliases": [
+        "history_of_hemorrhagic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "imaging_confirmed_first_ever_unihemispheric_ischemic_stroke",
+      "canonical_name": "imaging_confirmed_first_ever_unihemispheric_ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for imaging confirmed first ever unihemispheric ischemic stroke under Diagnosis.",
+      "aliases": [
+        "imaging_confirmed_first_ever_unihemispheric_ischemic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "infection_induced_stroke",
+      "canonical_name": "infection_induced_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for infection induced stroke under Diagnosis.",
+      "aliases": [
+        "infection_induced_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "intracerebral_hemorrhage",
+      "canonical_name": "intracerebral_hemorrhage",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for intracerebral hemorrhage under Diagnosis.",
+      "aliases": [
+        "intracerebral_hemorrhage"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ischemic_stroke",
+      "canonical_name": "ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Eligibility concept indicating that the participant has ischemic stroke as the index diagnosis or qualifying cerebrovascular condition.",
+      "aliases": [
+        "Ischemic stroke",
+        "ischaemic stroke",
+        "ischemic cerebrovascular event",
+        "cerebrovascular ischemia",
+        "ischemic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "neuroimaging_confirmed_stroke",
+      "canonical_name": "neuroimaging_confirmed_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for neuroimaging confirmed stroke under Diagnosis.",
+      "aliases": [
+        "neuroimaging_confirmed_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "parkinsons_disease",
+      "canonical_name": "parkinsons_disease",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for parkinsons disease under Diagnosis.",
+      "aliases": [
+        "parkinsons_disease"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "persisting_focal_neurological_deficit",
+      "canonical_name": "persisting_focal_neurological_deficit",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for persisting focal neurological deficit under Diagnosis.",
+      "aliases": [
+        "persisting_focal_neurological_deficit"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "post_stroke_motor_relapse",
+      "canonical_name": "post_stroke_motor_relapse",
+      "entity_id": "diagnosis",
+      "description": "Recurrence or relapse of motor deficits or motor symptoms attributable to a previous stroke.",
+      "aliases": [
+        "No motor relapse from a previous stroke",
+        "motor relapse from previous stroke",
+        "relapse of motor deficits after prior stroke",
+        "recurrent motor symptoms after stroke",
+        "return of motor impairment from prior stroke",
+        "post-stroke motor deficit recurrence",
+        "post_stroke_motor_relapse"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_ischemic_stroke_at_enrollment",
+      "canonical_name": "prior_ischemic_stroke_or_tia_at_least_3_months",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for prior ischemic stroke or tia at least 3 months under Diagnosis.",
+      "aliases": [
+        "prior_ischemic_stroke_or_tia_at_least_3_months"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "prior_stroke_with_motor_relapse",
+      "canonical_name": "prior_stroke_with_motor_relapse",
+      "entity_id": "diagnosis",
+      "description": "History of a previous stroke associated with recurrence, relapse, or worsening of motor deficits.",
+      "aliases": [
+        "Previous stroke with motor relapse",
+        "prior stroke with motor relapse",
+        "prior cerebrovascular accident with motor relapse",
+        "stroke recurrence with motor relapse",
+        "recurrent stroke with motor relapse",
+        "post-stroke motor relapse",
+        "prior_stroke_with_motor_relapse"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "progressive_stroke",
+      "canonical_name": "progressive_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for progressive stroke under Diagnosis.",
+      "aliases": [
+        "progressive_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "subarachnoid_hemorrhage",
+      "canonical_name": "subarachnoid_hemorrhage",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for subarachnoid hemorrhage under Diagnosis.",
+      "aliases": [
+        "subarachnoid_hemorrhage"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "surgery_induced_stroke",
+      "canonical_name": "surgery_induced_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for surgery induced stroke under Diagnosis.",
+      "aliases": [
+        "surgery_induced_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "thromboembolic_nonhemorrhagic_subcortical_stroke",
+      "canonical_name": "thromboembolic_nonhemorrhagic_subcortical_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for thromboembolic nonhemorrhagic subcortical stroke under Diagnosis.",
+      "aliases": [
+        "thromboembolic_nonhemorrhagic_subcortical_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_unilateral_hemorrhagic_stroke_at_inpatient_rehabilitation_admission",
+      "canonical_name": "time_from_unilateral_hemorrhagic_stroke_to_inpatient_rehabilitation_admission",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time from unilateral hemorrhagic stroke to inpatient rehabilitation admission under Diagnosis.",
+      "aliases": [
+        "time_from_unilateral_hemorrhagic_stroke_to_inpatient_rehabilitation_admission"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "days",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_acute_ischemic_stroke_at_randomization",
+      "canonical_name": "time_since_acute_ischemic_stroke_prior_to_randomization",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time since acute ischemic stroke prior to randomization under Diagnosis.",
+      "aliases": [
+        "time_since_acute_ischemic_stroke_prior_to_randomization"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "days",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_injury_at_enrollment",
+      "canonical_name": "time_since_injury",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time since injury under Diagnosis.",
+      "aliases": [
+        "time_since_injury"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Point",
+      "canonical_unit": "year",
+      "active": true
+    },
+    {
+      "attribute_id": "attribute_e3df7e7224019941",
+      "canonical_name": "time_since_ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time since ischemic stroke under Diagnosis.",
+      "aliases": [
+        "time_since_ischemic_stroke"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "months",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_stroke_at_enrollment",
+      "canonical_name": "time_since_stroke_at_enrollment",
+      "entity_id": "diagnosis",
+      "description": "Time elapsed between the qualifying/index stroke and study enrollment or inclusion assessment.",
+      "aliases": [
+        "Inclusion from day 5 to day 10 after stroke",
+        "post_stroke_enrollment_window",
+        "days_after_stroke_at_enrollment",
+        "time from stroke to enrollment",
+        "post-stroke day at enrollment",
+        "time_since_stroke_at_enrollment"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "days",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_transient_ischemic_attack_at_enrollment",
+      "canonical_name": "time_since_transient_ischemic_attack",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time since transient ischemic attack under Diagnosis.",
+      "aliases": [
+        "time_since_transient_ischemic_attack"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "months",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_unilateral_ischemic_stroke_at_inpatient_rehabilitation_admission",
+      "canonical_name": "time_since_unilateral_stroke_at_inpatient_rehabilitation_admission",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for time since unilateral stroke at inpatient rehabilitation admission under Diagnosis.",
+      "aliases": [
+        "time_since_unilateral_stroke_at_inpatient_rehabilitation_admission"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "days",
+      "active": true
+    },
+    {
+      "attribute_id": "trauma_induced_stroke",
+      "canonical_name": "trauma_induced_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for trauma induced stroke under Diagnosis.",
+      "aliases": [
+        "trauma_induced_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "unilateral_limb_weakness",
+      "canonical_name": "unilateral_limb_weakness",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for unilateral limb weakness under Diagnosis.",
+      "aliases": [
+        "unilateral_limb_weakness"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "unilateral_motor_deficit",
+      "canonical_name": "unilateral_motor_deficit",
+      "entity_id": "diagnosis",
+      "description": "Presence of a unilateral motor deficit, such as one-sided weakness, hemiparesis, or hemiplegia, relevant to the index neurologic condition.",
+      "aliases": [
+        "unilateral motor deficit",
+        "one-sided motor deficit",
+        "unilateral weakness",
+        "hemiparesis",
+        "hemiplegia",
+        "lateralized motor deficit",
+        "focal motor impairment",
+        "unilateral_motor_deficit"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "unilateral_supratentorial_ischemic_stroke",
+      "canonical_name": "unilateral_supratentorial_ischemic_stroke",
+      "entity_id": "diagnosis",
+      "description": "Reviewer-verified eligibility Attribute for unilateral supratentorial ischemic stroke under Diagnosis.",
+      "aliases": [
+        "unilateral_supratentorial_ischemic_stroke"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "aspartate_aminotransferase",
+      "canonical_name": "aspartate_aminotransferase",
+      "entity_id": "lab_test",
+      "description": "Aspartate aminotransferase (AST/TGO) laboratory level used to constrain eligibility, including elevations relative to the laboratory upper limit of normal.",
+      "aliases": [
+        "TGO >2N",
+        "AST",
+        "aspartate aminotransferase",
+        "TGO",
+        "SGOT",
+        "serum glutamic oxaloacetic transaminase",
+        "aspartate_aminotransferase"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "xULN",
+      "active": true
+    },
+    {
+      "attribute_id": "serum_alt_level",
+      "canonical_name": "serum_alt_level",
+      "entity_id": "lab_test",
+      "description": "Serum alanine aminotransferase level, including TGP/SGPT terminology, measured relative to the upper limit of normal.",
+      "aliases": [
+        "TGP >2N",
+        "TGP",
+        "SGPT",
+        "ALT",
+        "alanine aminotransferase",
+        "pyruvic transaminase",
+        "serum glutamic pyruvic transaminase",
+        "serum_alt_level"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "x ULN",
+      "active": true
+    },
+    {
+      "attribute_id": "serum_creatinine",
+      "canonical_name": "serum_creatinine",
+      "entity_id": "lab_test",
+      "description": "Serum creatinine laboratory concentration used to constrain renal function eligibility.",
+      "aliases": [
+        "Creatinin >180micromol/l",
+        "creatinine",
+        "creatinin",
+        "serum creatinine",
+        "blood creatinine",
+        "serum_creatinine"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "micromol/L",
+      "active": true
+    },
+    {
+      "attribute_id": "ability_and_willingness_to_comply_with_study_procedures",
+      "canonical_name": "ability_and_willingness_to_comply_with_study_procedures",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for ability and willingness to comply with study procedures under Other.",
+      "aliases": [
+        "ability_and_willingness_to_comply_with_study_procedures"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_complete_study_assessments",
+      "canonical_name": "ability_to_complete_study_assessments",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for ability to complete study assessments under Other.",
+      "aliases": [
+        "ability_to_complete_study_assessments"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_understand_instructions",
+      "canonical_name": "ability_to_understand_instructions",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for ability to understand instructions under Other.",
+      "aliases": [
+        "ability_to_understand_instructions"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "concurrent_investigational_stroke_recovery_study_enrollment",
+      "canonical_name": "concurrent_investigational_stroke_recovery_study_enrollment",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for concurrent investigational stroke recovery study enrollment under Other.",
+      "aliases": [
+        "concurrent_investigational_stroke_recovery_study_enrollment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "current_investigational_medical_product_trial_participation",
+      "canonical_name": "current_investigational_medical_product_trial_participation",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for current investigational medical product trial participation under Other.",
+      "aliases": [
+        "current_investigational_medical_product_trial_participation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_speak_english",
+      "canonical_name": "english_language_proficiency",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for english language proficiency under Other.",
+      "aliases": [
+        "english_language_proficiency"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "follow_up_availability_at_12_months",
+      "canonical_name": "follow_up_availability_12_months",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for follow up availability 12 months under Other.",
+      "aliases": [
+        "follow_up_availability_12_months"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "legal_protection_status",
+      "canonical_name": "legal_protection_status",
+      "entity_id": "other",
+      "description": "Participant legal protection status indicating whether the subject is protected by law or under a legally protected status relevant to consent or enrollment eligibility.",
+      "aliases": [
+        "Subject protected by law",
+        "protected by law",
+        "legally protected subject",
+        "person protected by law",
+        "legal protection status",
+        "protected person status",
+        "legal status protection",
+        "legal_protection_status"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_understand_written_english",
+      "canonical_name": "patient_or_carer_english_comprehension_limitation",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for patient or carer english comprehension limitation under Other.",
+      "aliases": [
+        "patient_or_carer_english_comprehension_limitation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "planned_relocation_from_study_area",
+      "canonical_name": "planned_relocation_from_local_area",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for planned relocation from local area under Other.",
+      "aliases": [
+        "planned_relocation_from_local_area"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_complete_questionnair",
+      "canonical_name": "questionnaire_completion_ability",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for questionnaire completion ability under Other.",
+      "aliases": [
+        "questionnaire_completion_ability"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_participate_in_standardized_rehabilitation_therapy",
+      "canonical_name": "rehabilitation_therapy_participation_capacity",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for rehabilitation therapy participation capacity under Other.",
+      "aliases": [
+        "rehabilitation_therapy_participation_capacity"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "ability_to_complete_follow_up_forms",
+      "canonical_name": "swedish_language_and_followup_form_support_limitation",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for swedish language and followup form support limitation under Other.",
+      "aliases": [
+        "swedish_language_and_followup_form_support_limitation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "device_implant_surgery_candidacy",
+      "canonical_name": "unfavorable_device_implant_surgery_candidacy",
+      "entity_id": "other",
+      "description": "Reviewer-verified eligibility Attribute for unfavorable device implant surgery candidacy under Other.",
+      "aliases": [
+        "unfavorable_device_implant_surgery_candidacy"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "antiepileptic_drug_use",
+      "canonical_name": "antiepileptic_drug_use",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for antiepileptic drug use under Previous Treatment.",
+      "aliases": [
+        "antiepileptic_drug_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "benzodiazepine_treatment",
+      "canonical_name": "benzodiazepine_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for benzodiazepine treatment under Previous Treatment.",
+      "aliases": [
+        "benzodiazepine_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "concomitant_medication_interfering_with_tdcs",
+      "canonical_name": "concomitant_medication_interfering_with_tdcs",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for concomitant medication interfering with tdcs under Previous Treatment.",
+      "aliases": [
+        "concomitant_medication_interfering_with_tdcs"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "concomitant_medication_interfering_with_vns_neurotransmitter_effects_at_study_entry",
+      "canonical_name": "concomitant_medication_interfering_with_vns_neurotransmitter_effects",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for concomitant medication interfering with vns neurotransmitter effects under Previous Treatment.",
+      "aliases": [
+        "concomitant_medication_interfering_with_vns_neurotransmitter_effects"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "current_investigational_drug_use",
+      "canonical_name": "current_investigational_drug_use",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for current investigational drug use under Previous Treatment.",
+      "aliases": [
+        "current_investigational_drug_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "current_stimulation_device_use",
+      "canonical_name": "current_other_stimulation_device_use",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for current other stimulation device use under Previous Treatment.",
+      "aliases": [
+        "current_other_stimulation_device_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "current_other_stimulation_device_use",
+      "canonical_name": "current_stimulation_device_use",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for current stimulation device use under Previous Treatment.",
+      "aliases": [
+        "current_stimulation_device_use"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "diathermy_use",
+      "canonical_name": "diathermy_requirement_during_study",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for diathermy requirement during study under Previous Treatment.",
+      "aliases": [
+        "diathermy_requirement_during_study"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "hemicraniectomy_history",
+      "canonical_name": "hemicraniectomy_history",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for hemicraniectomy history under Previous Treatment.",
+      "aliases": [
+        "hemicraniectomy_history"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "immunosuppressive_treatment",
+      "canonical_name": "immunosuppressive_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for immunosuppressive treatment under Previous Treatment.",
+      "aliases": [
+        "immunosuppressive_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "in_hospital_rehabilitation",
+      "canonical_name": "in_hospital_rehabilitation",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for in hospital rehabilitation under Previous Treatment.",
+      "aliases": [
+        "in_hospital_rehabilitation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "levodopa_carbidopa_contraindication",
+      "canonical_name": "levodopa_carbidopa_contraindication",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for levodopa carbidopa contraindication under Previous Treatment.",
+      "aliases": [
+        "levodopa_carbidopa_contraindication"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "use_of_levodopa",
+      "canonical_name": "mandatory_levodopa_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for mandatory levodopa treatment under Previous Treatment.",
+      "aliases": [
+        "mandatory_levodopa_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "active_upper_extremity_rehabilitation",
+      "canonical_name": "non_study_active_upper_extremity_rehabilitation",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for non study active upper extremity rehabilitation under Previous Treatment.",
+      "aliases": [
+        "non_study_active_upper_extremity_rehabilitation"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "upper_extremity_botox_injection",
+      "canonical_name": "peri_therapy_upper_extremity_botulinum_toxin_injection",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for peri therapy upper extremity botulinum toxin injection under Previous Treatment.",
+      "aliases": [
+        "peri_therapy_upper_extremity_botulinum_toxin_injection"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "planned_carotid_surgery",
+      "canonical_name": "planned_carotid_surgery_within_3_months",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for planned carotid surgery within 3 months under Previous Treatment.",
+      "aliases": [
+        "planned_carotid_surgery_within_3_months"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "active_rehabilitation",
+      "canonical_name": "recent_active_rehabilitation_before_consent",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for recent active rehabilitation before consent under Previous Treatment.",
+      "aliases": [
+        "recent_active_rehabilitation_before_consent"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "recent_monoamine_oxidase_inhibitor_treatment",
+      "canonical_name": "recent_monoamine_oxidase_inhibitor_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Prior or concomitant treatment with a monoamine oxidase inhibitor medication within a recent specified lookback period.",
+      "aliases": [
+        "Patients treated by monoamine oxidase inhibitor (IMAO) in the past month",
+        "monoamine oxidase inhibitor treatment",
+        "MAOI treatment",
+        "IMAO treatment",
+        "monoamine oxidase inhibitor use",
+        "recent MAOI exposure",
+        "recent_monoamine_oxidase_inhibitor_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "recent_neuroleptic_treatment",
+      "canonical_name": "recent_neuroleptic_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Recent treatment or exposure to neuroleptic/antipsychotic medication within the specified lookback period.",
+      "aliases": [
+        "Patients treated by neuroleptics in the past month",
+        "neuroleptics",
+        "neuroleptic agents",
+        "antipsychotics",
+        "antipsychotic drugs",
+        "recent antipsychotic medication use",
+        "recent neuroleptic exposure",
+        "recent_neuroleptic_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "recent_selective_serotonin_reuptake_inhibitor_treatment",
+      "canonical_name": "recent_selective_serotonin_reuptake_inhibitor_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Recent prior or concomitant treatment with a selective serotonin reuptake inhibitor medication class, including SSRI exposure specified by the source context such as treatment in the past month.",
+      "aliases": [
+        "Patients treated by selective serotonin reuptake inhibitor in the past month",
+        "SSRI treatment",
+        "SSRI use",
+        "selective serotonin reuptake inhibitor use",
+        "selective serotonin reuptake inhibitor exposure",
+        "recent SSRI use",
+        "recent SSRI exposure",
+        "recent_selective_serotonin_reuptake_inhibitor_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "recent_tricyclic_antidepressant_treatment",
+      "canonical_name": "recent_tricyclic_antidepressant_treatment",
+      "entity_id": "previous_treatment",
+      "description": "Prior or concomitant treatment exposure to tricyclic antidepressant medications as an eligibility concept.",
+      "aliases": [
+        "Patients treated by tricyclic antidepressant in the past month",
+        "tricyclic antidepressant use",
+        "tricyclic antidepressant exposure",
+        "TCA treatment",
+        "TCA use",
+        "tricyclic antidepressants",
+        "recent_tricyclic_antidepressant_treatment"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_thrombolysis_at_randomization",
+      "canonical_name": "time_since_reperfusion_procedure_at_randomization",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for time since reperfusion procedure at randomization under Previous Treatment.",
+      "aliases": [
+        "time_since_reperfusion_procedure_at_randomization"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "hours",
+      "active": true
+    },
+    {
+      "attribute_id": "time_since_thrombectomy_at_randomization",
+      "canonical_name": "time_since_thrombectomy_at_randomization",
+      "entity_id": "previous_treatment",
+      "description": "Reviewer-verified eligibility Attribute for time since thrombectomy at randomization under Previous Treatment.",
+      "aliases": [
+        "time_since_thrombectomy_at_randomization"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "hours",
+      "active": true
+    },
+    {
+      "attribute_id": "time_to_planned_carotid_surgery",
+      "canonical_name": "time_to_planned_carotid_surgery",
+      "entity_id": "previous_treatment",
+      "description": "Time from eligibility assessment or enrollment to a planned or needed carotid surgical procedure, including carotid endarterectomy or comparable carotid revascularization surgery.",
+      "aliases": [
+        "Patients needing carotid surgery within 3 months",
+        "carotid surgery timing",
+        "planned carotid surgery",
+        "needed carotid surgery",
+        "carotid endarterectomy timing",
+        "carotid revascularization timing",
+        "time_to_planned_carotid_surgery"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "months",
+      "active": false
+    },
+    {
+      "attribute_id": "pre_stroke_barthel_index_score",
+      "canonical_name": "barthel_index_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for barthel index score under Score.",
+      "aliases": [
+        "barthel_index_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "baseline_upper_extremity_fugl_meyer_score_absolute_difference",
+      "canonical_name": "baseline_fugl_meyer_upper_extremity_score_difference",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for baseline fugl meyer upper extremity score difference under Score.",
+      "aliases": [
+        "baseline_fugl_meyer_upper_extremity_score_difference"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "depression",
+      "canonical_name": "beck_depression_scale_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for beck depression scale score under Score.",
+      "aliases": [
+        "beck_depression_scale_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "fugl_meyer_motor_scale_score",
+      "canonical_name": "fugl_meyer_motor_scale_score",
+      "entity_id": "score",
+      "description": "Participant score on the Fugl-Meyer Motor Scale or Fugl-Meyer motor assessment used to quantify motor impairment severity.",
+      "aliases": [
+        "Fugl Meyer Motor Scale Score",
+        "Fugl Meyer Motor Scale",
+        "Fugl-Meyer Motor Scale",
+        "Fugl Meyer Motor Assessment",
+        "Fugl-Meyer Assessment",
+        "FMA motor score",
+        "fugl_meyer_motor_scale_score",
+        "Fugl Meyer Motor Scale > 55",
+        "FMA Motor Scale",
+        "Fugl Meyer score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "attribute_dd9cdeb67e5cf9d1",
+      "canonical_name": "fugl_meyer_upper_extremity_sensory_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for fugl meyer upper extremity sensory score under Score.",
+      "aliases": [
+        "fugl_meyer_upper_extremity_sensory_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "mfi_20_score",
+      "canonical_name": "mfi_20_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for mfi 20 score under Score.",
+      "aliases": [
+        "mfi_20_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "cognitive_deficit",
+      "canonical_name": "mini_mental_state_examination_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for mini mental state examination score under Score.",
+      "aliases": [
+        "mini_mental_state_examination_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "modified_ashworth_scale_score",
+      "canonical_name": "modified_ashworth_scale_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for modified ashworth scale score under Score.",
+      "aliases": [
+        "modified_ashworth_scale_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "upper_limb_spasticity",
+      "canonical_name": "modified_ashworth_upper_limb_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for modified ashworth upper limb score under Score.",
+      "aliases": [
+        "modified_ashworth_upper_limb_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "modified_rankin_scale",
+      "canonical_name": "modified_rankin_scale",
+      "entity_id": "score",
+      "description": "Modified Rankin Scale (mRS) score measuring functional disability after neurologic disease or stroke.",
+      "aliases": [
+        "Modified Rankin Scale between 1 and 5",
+        "mRS",
+        "Modified Rankin Scale",
+        "Rankin Scale",
+        "Rankin score",
+        "modified rankin score",
+        "modified_rankin_scale"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "modified_rankin_scale_score",
+      "canonical_name": "modified_rankin_scale_score",
+      "entity_id": "score",
+      "description": "Modified Rankin Scale (mRS) score used as a structured clinical disability assessment score.",
+      "aliases": [
+        "Modified Rankin Scale = 0",
+        "Modified Rankin Scale",
+        "mRS",
+        "Rankin Scale",
+        "Modified Rankin score",
+        "modified_rankin_scale_score",
+        "Modified Rankin Scale = 6",
+        "Rankin score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "montreal_cognitive_assessment_score",
+      "canonical_name": "montreal_cognitive_assessment_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for montreal cognitive assessment score under Score.",
+      "aliases": [
+        "montreal_cognitive_assessment_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "motor_activity_log_score",
+      "canonical_name": "motor_activity_log_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for motor activity log score under Score.",
+      "aliases": [
+        "motor_activity_log_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "attribute_794461e914278ad3",
+      "canonical_name": "motor_assessment_scale_upper_arm_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for motor assessment scale upper arm item score under Score.",
+      "aliases": [
+        "motor_assessment_scale_upper_arm_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "motor_assessment_scale_upper_arm_score",
+      "canonical_name": "motor_assessment_scale_upper_arm_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for motor assessment scale upper arm score under Score.",
+      "aliases": [
+        "motor_assessment_scale_upper_arm_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "motor_nihss_affected_side_score",
+      "canonical_name": "motor_nihss_affected_side_score",
+      "entity_id": "score",
+      "description": "Motor component NIH Stroke Scale score measured on the stroke-affected side of the body.",
+      "aliases": [
+        "Motor NIHSS \u001a 5 on the affected side of the body",
+        "Motor NIHSS",
+        "NIHSS motor score",
+        "motor NIH Stroke Scale",
+        "Motor NIHSS on affected side",
+        "affected-side Motor NIHSS",
+        "motor_nihss_affected_side_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_communication_item_score",
+      "canonical_name": "nihss_communication_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nihss communication item score under Score.",
+      "aliases": [
+        "nihss_communication_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_consciousness_item_score",
+      "canonical_name": "nihss_consciousness_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nihss consciousness item score under Score.",
+      "aliases": [
+        "nihss_consciousness_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nihss_motor_arm_item_score",
+      "canonical_name": "nihss_motor_arm_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nihss motor arm item score under Score.",
+      "aliases": [
+        "nihss_motor_arm_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nihss_score",
+      "canonical_name": "nihss_score",
+      "entity_id": "score",
+      "description": "National Institutes of Health Stroke Scale (NIHSS) total score used to measure neurologic deficit or stroke severity.",
+      "aliases": [
+        "NIHSS < 20",
+        "NIHSS",
+        "National Institutes of Health Stroke Scale",
+        "NIH Stroke Scale",
+        "stroke severity score",
+        "nihss_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_sensory_item_score",
+      "canonical_name": "nihss_sensory_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nihss sensory item score under Score.",
+      "aliases": [
+        "nihss_sensory_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_limb_ataxia_score",
+      "canonical_name": "nih_stroke_scale_limb_ataxia_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nih stroke scale limb ataxia item score under Score.",
+      "aliases": [
+        "nih_stroke_scale_limb_ataxia_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_motor_arm_score",
+      "canonical_name": "nih_stroke_scale_motor_arm_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nih stroke scale motor arm score under Score.",
+      "aliases": [
+        "nih_stroke_scale_motor_arm_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "nih_stroke_scale_motor_leg_score",
+      "canonical_name": "nih_stroke_scale_motor_leg_item_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for nih stroke scale motor leg item score under Score.",
+      "aliases": [
+        "nih_stroke_scale_motor_leg_item_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "pre_stroke_functional_dependence",
+      "canonical_name": "pre_stroke_functional_dependence",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for pre stroke functional dependence under Score.",
+      "aliases": [
+        "pre_stroke_functional_dependence"
+      ],
+      "value_type": "Categorical",
+      "numerical_type": null,
+      "canonical_unit": null,
+      "active": true
+    },
+    {
+      "attribute_id": "pre_stroke_modified_rankin_scale_score",
+      "canonical_name": "pre_stroke_modified_rankin_scale_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for pre stroke modified rankin scale score under Score.",
+      "aliases": [
+        "pre_stroke_modified_rankin_scale_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "short_blessed_memory_orientation_concentration_scale_score",
+      "canonical_name": "short_blessed_memory_orientation_concentration_scale_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for short blessed memory orientation concentration scale score under Score.",
+      "aliases": [
+        "short_blessed_memory_orientation_concentration_scale_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "star_cancellation_test_asymmetry_errors",
+      "canonical_name": "star_cancellation_test_asymmetry_errors",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for star cancellation test asymmetry errors under Score.",
+      "aliases": [
+        "star_cancellation_test_asymmetry_errors"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "errors",
+      "active": true
+    },
+    {
+      "attribute_id": "thumb_joint_extension_range_of_motion",
+      "canonical_name": "thumb_joint_extension_range_of_motion",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for thumb joint extension range of motion under Score.",
+      "aliases": [
+        "thumb_joint_extension_range_of_motion"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "degrees",
+      "active": true
+    },
+    {
+      "attribute_id": "upper_extremity_hemiparesis",
+      "canonical_name": "upper_extremity_fugl_meyer_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for upper extremity fugl meyer score under Score.",
+      "aliases": [
+        "upper_extremity_fugl_meyer_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "upper_extremity_fugl_meyer_sensory_score",
+      "canonical_name": "upper_extremity_fugl_meyer_sensory_score",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for upper extremity fugl meyer sensory score under Score.",
+      "aliases": [
+        "upper_extremity_fugl_meyer_sensory_score"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "points",
+      "active": true
+    },
+    {
+      "attribute_id": "wrist_extension_repetition_rate",
+      "canonical_name": "wrist_finger_extension_repetition_rate",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for wrist finger extension repetition rate under Score.",
+      "aliases": [
+        "wrist_finger_extension_repetition_rate"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "movements/minute",
+      "active": true
+    },
+    {
+      "attribute_id": "finger_extension_repetition_rate",
+      "canonical_name": "wrist_finger_extension_repetitions_per_minute",
+      "entity_id": "score",
+      "description": "Reviewer-verified eligibility Attribute for wrist finger extension repetitions per minute under Score.",
+      "aliases": [
+        "wrist_finger_extension_repetitions_per_minute"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "repetitions/minute",
+      "active": true
+    },
+    {
+      "attribute_id": "life_expectancy",
+      "canonical_name": "life_expectancy",
+      "entity_id": "survival",
+      "description": "Concurrent disease or clinical condition expected to have an unfavorable prognosis within one year.",
+      "aliases": [
+        "life expectancy",
+        "expected survival time",
+        "life_expectancy"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "year",
+      "active": true
+    },
+    {
+      "attribute_id": "diastolic_blood_pressure",
+      "canonical_name": "diastolic_blood_pressure",
+      "entity_id": "vital",
+      "description": "Reviewer-verified eligibility Attribute for diastolic blood pressure under Vital.",
+      "aliases": [
+        "diastolic_blood_pressure"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "mmHg",
+      "active": true
+    },
+    {
+      "attribute_id": "systolic_blood_pressure",
+      "canonical_name": "systolic_blood_pressure",
+      "entity_id": "vital",
+      "description": "Reviewer-verified eligibility Attribute for systolic blood pressure under Vital.",
+      "aliases": [
+        "systolic_blood_pressure"
+      ],
+      "value_type": "Numerical",
+      "numerical_type": "Range",
+      "canonical_unit": "mmHg",
+      "active": true
+    }
+  ],
+  "audit_history": [
+    {
+      "audit_id": "eva_audit_656498c17225dc48",
+      "trial_key": "NCT00657163",
+      "trial_id": "NCT00657163",
+      "applied_at": "2026-07-29T01:39:17.799488+00:00",
+      "previous_revision": 0,
+      "new_revision": 1,
+      "approved_item_count": 35
+    },
+    {
+      "audit_id": "eva_audit_verified_8e78150b66ca75ca",
+      "trial_key": "ACTRN12615000350527",
+      "trial_id": "ACTRN12615000350527",
+      "applied_at": "2026-07-30T00:03:58.198071+00:00",
+      "previous_revision": 1,
+      "new_revision": 2,
+      "approved_item_count": 34
+    },
+    {
+      "audit_id": "eva_audit_verified_9d510bcb03903ed3",
+      "trial_key": "ACTRN12615000350527-POSTHOC",
+      "trial_id": "ACTRN12615000350527-POSTHOC",
+      "applied_at": "2026-07-30T00:03:58.215041+00:00",
+      "previous_revision": 2,
+      "new_revision": 3,
+      "approved_item_count": 34
+    },
+    {
+      "audit_id": "eva_audit_verified_0931b335422ce392",
+      "trial_key": "ISRCTN83290762",
+      "trial_id": "ISRCTN83290762",
+      "applied_at": "2026-07-30T00:03:58.232508+00:00",
+      "previous_revision": 3,
+      "new_revision": 4,
+      "approved_item_count": 25
+    },
+    {
+      "audit_id": "eva_audit_verified_f3495007c869bd21",
+      "trial_key": "NCT00057018",
+      "trial_id": "NCT00057018",
+      "applied_at": "2026-07-30T00:03:58.249833+00:00",
+      "previous_revision": 4,
+      "new_revision": 5,
+      "approved_item_count": 8
+    },
+    {
+      "audit_id": "eva_audit_656498c17225dc48",
+      "trial_key": "NCT00657163",
+      "trial_id": "NCT00657163",
+      "applied_at": "2026-07-30T00:03:58.268323+00:00",
+      "previous_revision": 5,
+      "new_revision": 6,
+      "approved_item_count": 35
+    },
+    {
+      "audit_id": "eva_audit_verified_ff94fa83684f6aaa",
+      "trial_key": "NCT00909714",
+      "trial_id": "NCT00909714",
+      "applied_at": "2026-07-30T00:03:58.294198+00:00",
+      "previous_revision": 6,
+      "new_revision": 7,
+      "approved_item_count": 27
+    },
+    {
+      "audit_id": "eva_audit_verified_2358a85702ca12ac",
+      "trial_key": "NCT02683213",
+      "trial_id": "NCT02683213",
+      "applied_at": "2026-07-30T00:03:58.392069+00:00",
+      "previous_revision": 7,
+      "new_revision": 8,
+      "approved_item_count": 28
+    },
+    {
+      "audit_id": "eva_audit_verified_b4930df33ce91ccc",
+      "trial_key": "NCT03131960",
+      "trial_id": "NCT03131960",
+      "applied_at": "2026-07-30T00:03:58.453165+00:00",
+      "previous_revision": 8,
+      "new_revision": 9,
+      "approved_item_count": 46
+    },
+    {
+      "audit_id": "eva_audit_verified_a11c7b3e51193c43",
+      "trial_key": "NCT03735901",
+      "trial_id": "NCT03735901",
+      "applied_at": "2026-07-30T00:03:58.480885+00:00",
+      "previous_revision": 9,
+      "new_revision": 10,
+      "approved_item_count": 27
+    },
+    {
+      "audit_id": "eva_audit_verified_244c3786b0777078",
+      "trial_key": "NCT03826030",
+      "trial_id": "NCT03826030",
+      "applied_at": "2026-07-30T00:03:58.510056+00:00",
+      "previous_revision": 10,
+      "new_revision": 11,
+      "approved_item_count": 40
+    },
+    {
+      "audit_id": "eva_audit_verified_f0aa3a9a2bbf2256",
+      "trial_key": "VECTORS",
+      "trial_id": "VECTORS",
+      "applied_at": "2026-07-30T00:03:58.713949+00:00",
+      "previous_revision": 11,
+      "new_revision": 12,
+      "approved_item_count": 22
+    }
+  ],
+  "retirement_history": [
+    {
+      "retired_at": "2026-07-30T00:05:30.502336+00:00",
+      "previous_revision": 12,
+      "new_revision": 13,
+      "reason": "Not referenced by the authoritative reviewer-verified eligibility EVA dataset.",
+      "verified_directory": "C:\\Users\\User\\Dropbox\\EligCrit\\outputs\\selected_stroke\\normalized_elig",
+      "attribute_ids": [
+        "aphasia_preventing_scale_evaluation",
+        "time_to_planned_carotid_surgery"
+      ]
+    }
+  ]
+}

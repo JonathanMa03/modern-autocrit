@@ -2,13 +2,7 @@ openai
 python-dotenv
 pydantic
 pandas
-numpy
 requests
-beautifulsoup4
-lxml
 openpyxl
-pyarrow
-tqdm
 rapidfuzz
-scikit-learn
 pytest
