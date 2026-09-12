@@ -96,14 +96,104 @@ The distance measure becomes useful when connected to concrete design decisions.
     \item show which individual criteria account for most of the distance between two protocols.
 \end{itemize}
 
+\subsection*{Recommended modeling architecture}
+
+A two-stage retrieval and reranking architecture is more practical than expecting one embedding to solve every comparison:
+
+\begin{enumerate}
+    \item \textbf{Bi-encoder retrieval.} Encode every criterion independently and use cosine similarity to retrieve a small set of potentially related criteria. This stage is fast enough to search thousands of protocols.
+    \item \textbf{Cross-encoder comparison.} Pass each retrieved pair jointly through a second model that can attend directly to differences in thresholds, comparators, negation, units, and time windows.
+    \item \textbf{Structured distance layer.} Combine the learned scores with deterministic distances computed from Modern AutoCrit's extracted fields.
+    \item \textbf{Protocol aggregation.} Use optimal transport to align the weighted criterion sets and calculate an overall protocol or population distance.
+\end{enumerate}
+
+The pairwise model should predict more than a single similarity number. A useful multi-task output is:
+
+\begin{itemize}
+    \item semantic relationship: equivalent, narrower, broader, partial overlap, contradictory, or unrelated;
+    \item criterion type and matched attribute;
+    \item continuous distance on a calibrated scale;
+    \item direction of population inclusion, where applicable; and
+    \item uncertainty or an abstention decision.
+\end{itemize}
+
+For example, ``age $\geq 60$'' is narrower than ``age $\geq 18$,'' while ``age $<60$'' partially overlaps with neither in the same way. A directional label is therefore more informative than a symmetric cosine score. The final distance can remain symmetric for optimal transport while retaining the directional relation as metadata.
+
+\subsection*{Hugging Face starting models}
+
+The project should benchmark several starting checkpoints rather than assume that biomedical pretraining will automatically solve criterion comparison:
+
+\begin{itemize}
+    \item \href{https://huggingface.co/FremyCompany/BioLORD-2023}{\texttt{FremyCompany/BioLORD-2023}} is the strongest first candidate for the bi-encoder. It is already packaged for Sentence Transformers and was trained to represent biomedical concepts and clinical sentences. Its specialized terminology licenses should be reviewed before any commercial use.
+    \item \href{https://huggingface.co/ncbi/MedCPT-Query-Encoder}{\texttt{ncbi/MedCPT-Query-Encoder}} is a public-domain biomedical retrieval baseline trained on large-scale PubMed search behavior. It supports short-text and query-to-query representations, making it suitable for criterion retrieval.
+    \item \href{https://huggingface.co/cambridgeltl/SapBERT-from-PubMedBERT-fulltext}{\texttt{cambridgeltl/SapBERT-from-PubMedBERT-fulltext}} is useful for the entity and terminology component of the distance. Because it was developed for biomedical concept representation and entity linking, it should not be treated as a complete sentence-level relation model by itself.
+    \item \href{https://huggingface.co/microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext}{\texttt{microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext}} is a good base checkpoint for a custom cross-encoder that classifies the relationship between two criteria. It provides biomedical language pretraining without imposing an existing sentence-similarity objective.
+    \item \href{https://huggingface.co/ncbi/MedCPT-Cross-Encoder}{\texttt{ncbi/MedCPT-Cross-Encoder}} is an additional biomedical reranking baseline. It was not trained specifically for symmetric eligibility comparison, so the classification head should be replaced and fine-tuned on criterion pairs.
+    \item \href{https://huggingface.co/sentence-transformers/all-mpnet-base-v2}{\texttt{all-mpnet-base-v2}} and \href{https://huggingface.co/BAAI/bge-base-en-v1.5}{\texttt{bge-base-en-v1.5}} provide strong general-domain baselines. If a biomedical model does not outperform them, that is an important experimental result.
+\end{itemize}
+
+A sensible initial comparison is BioLORD versus MedCPT versus MPNet for retrieval, followed by BiomedBERT as the pairwise cross-encoder. This keeps all primary models near the BERT/base scale and makes fine-tuning feasible on a single modern GPU. Parameter-efficient fine-tuning can be used if an instruction-tuned LLM is later added as a pairwise judge, but the encoder models above are more suitable for producing a scalable metric space.
+
+\subsection*{Training-data construction}
+
+Modern AutoCrit can create the initial corpus by extracting and normalizing criteria from ClinicalTrials.gov protocols. Training examples would consist of criterion pairs, structured fields, and reviewed relationship labels. The dataset should deliberately include difficult contrasts rather than mostly easy unrelated pairs:
+
+\begin{itemize}
+    \item \textbf{Equivalent positives:} paraphrases, abbreviations, terminology synonyms, and unit-converted expressions that define the same population.
+    \item \textbf{Numeric hard negatives:} identical wording with different age, laboratory, dosage, score, or duration thresholds.
+    \item \textbf{Logical hard negatives:} comparator reversal, inclusion versus exclusion, negation, AND/OR changes, and exceptions.
+    \item \textbf{Temporal hard negatives:} the same event with different lookback, washout, or stability periods.
+    \item \textbf{Nested clinical differences:} the same disease with different stage, biomarker, treatment line, disease activity, or organ-function requirements.
+    \item \textbf{Unrelated negatives:} criteria from different attributes or clinical domains.
+\end{itemize}
+
+An LLM can provide weak labels and explanations at scale, but a manually reviewed subset should define the evaluation standard. Synthetic perturbations are useful because they create controlled threshold and logic changes, but the test set should contain naturally occurring criteria from protocols. Data should be split by trial---and preferably also tested on held-out disease areas---to prevent near-duplicate criteria from leaking across training and evaluation.
+
+\subsection*{Fine-tuning objectives}
+
+The bi-encoder can be trained with contrastive or triplet loss. An anchor criterion should be closer to an equivalent or near-equivalent criterion than to a clinically different hard negative:
+
+\[
+L_{\mathrm{triplet}}
+=
+\max\{0,
+d(c_a,c_p)-d(c_a,c_n)+m\}.
+\]
+
+The cross-encoder can use a multi-task loss combining relationship classification, continuous-distance regression, and directional ordering:
+
+\[
+L
+=
+\lambda_1 L_{\mathrm{relation}}
++\lambda_2 L_{\mathrm{distance}}
++\lambda_3 L_{\mathrm{direction}}
++\lambda_4 L_{\mathrm{contrastive}}.
+\]
+
+Structured numeric features should either enter a small calibration network alongside the text representation or be combined with model scores after training. Keeping the structured component explicit makes failures such as the age-threshold example easier to diagnose and audit.
+
+\subsection*{Evaluation plan}
+
+Evaluation should occur at three levels:
+
+\begin{itemize}
+    \item \textbf{Pair level:} macro F1 for relationship classes, Spearman correlation with expert distance rankings, triplet-ordering accuracy, calibration error, and performance on numeric, negation, unit, and temporal challenge sets.
+    \item \textbf{Retrieval level:} Recall@$k$, mean reciprocal rank, and normalized discounted cumulative gain for recovering genuinely comparable criteria and trials.
+    \item \textbf{Design level:} error in predicted historical control rates or variances; prior-data conflict; treatment-effect bias; interval coverage; and sample-size or recruitment error as the retrieval radius changes.
+\end{itemize}
+
+Important ablations include embedding only, structured fields only, LLM judgment only, bi-encoder plus structured distance, and the complete bi-encoder--cross-encoder--structured model. This will show whether the added complexity produces clinically and statistically meaningful improvement.
+
 \subsection*{Course-project sketch}
 
 \begin{itemize}
-    \item Use an LLM with Modern AutoCrit to extract and classify eligibility claims into structured criterion types, such as demographic, laboratory, disease, biomarker, treatment-history, and temporal requirements.
-    \item Create labeled pairs of criteria with human or carefully reviewed LLM judgments such as equivalent, slightly different, substantially different, contradictory, or unrelated.
-    \item Compare a general-purpose embedding baseline with a hybrid structured distance and a dedicated model fine-tuned using contrastive or ordinal learning on the labeled criterion pairs.
-    \item Evaluate retrieval of clinically comparable trials and test whether weighting historical assumptions by distance improves simulated sample-size, power, or recruitment estimates.
-    \item Demonstrate the result as an interface that aligns two protocols, visualizes their most important differences, adjusts the retrieval radius, and displays the resulting change in downstream trial-design calculations.
+    \item Extract a corpus from one or two therapeutic areas and create approximately 2,000--5,000 weakly labeled pairs, including controlled numeric and logical perturbations; manually review a smaller validation and test set.
+    \item Benchmark BioLORD, MedCPT, and MPNet as frozen bi-encoders, then fine-tune the strongest model with hard-negative contrastive learning.
+    \item Fine-tune a BiomedBERT cross-encoder to predict pairwise relationship, direction, and distance, and combine it with Modern AutoCrit's structured numeric and logical features.
+    \item Aggregate criterion costs into a protocol-level optimal-transport distance and evaluate retrieval of comparable trials.
+    \item Demonstrate one downstream use case: vary the retrieval radius or distance-weighted borrowing and show its effect on a simulated sample-size, power, recruitment, or historical-control calculation.
+    \item Build an interface that aligns two protocols, highlights the criteria responsible for their distance, exposes model uncertainty, and routes ambiguous comparisons for review.
 \end{itemize}
 
 \end{document}
