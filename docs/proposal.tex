@@ -1,0 +1,168 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.25em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=1.7em,itemsep=0.3em,topsep=0.35em}
+\setlength{\emergencystretch}{1.5em}
+
+\title{MetricSpace: An Agentic System for Comparing Clinical Trial Eligibility Criteria}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Motivation and Aim}
+
+Modern AutoCrit converts free-text clinical trial eligibility criteria into normalized, atomic, structured records. The proposed project extends this extraction pipeline with an agentic system that determines how eligibility criteria should be compared, invokes appropriate statistical and computational tools, audits conflicting results, and escalates unresolved cases for human review.
+
+The central problem is that semantic similarity does not necessarily imply similarity between eligible populations. For example, ``age $\geq18$'' and ``age $<18$'' differ by one operator and may be close in a general-purpose embedding space, yet they define nearly disjoint populations. More complex statements---such as ``no history of clinically significant cardiovascular disease'' and ``patients with well-controlled hypertension are permitted''---cannot be resolved by interval logic alone. Their relationship depends on negation, clinical terminology, severity, history, and exceptions.
+
+The primary aim is to develop and evaluate an agentic workflow that combines structured logic, population-based statistics, pretrained embeddings, and constrained LLM assessment. The system will estimate similarity, contradiction, containment, and restrictiveness while preserving uncertainty and an audit trail. Age criteria will provide a controlled setting with exact logical ground truth, while ambiguous clinical sentences will test whether the workflow generalizes to clinically meaningful language.
+
+\section{Research Questions}
+
+The project will address four questions:
+
+\begin{enumerate}
+    \item Can an agent reliably select the appropriate comparison procedure for numeric and ambiguous eligibility criteria?
+    \item How often do embedding similarity, structured logic, population disagreement, and LLM judgments conflict?
+    \item Can a learned hybrid distance predict clinically meaningful relationships more accurately and with better calibration than any component alone?
+    \item Can automatic checks and critic review identify unreliable comparisons and route them for human review?
+\end{enumerate}
+
+\section{Agentic System}
+
+The agentic system is the central contribution. It does not ask an LLM to invent a distance score. Instead, an orchestrator selects and sequences validated tools, applies a fitted statistical model, invokes mandatory quality checks, and determines whether the result can be accepted or requires review.
+
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}p{0.68\linewidth}}
+\toprule
+\textbf{Component} & \textbf{Responsibility} \\
+\midrule
+Orchestrator agent & Classifies the comparison task, selects a workflow, invokes tools, and assembles an evidence-backed result. \\
+Deterministic tools & Parse intervals, normalize units, calculate logical relationships, estimate population disagreement, and apply versioned statistical models. \\
+Comparison skills & Define reproducible workflows for numeric criteria, ambiguous clinical concepts, and result auditing. \\
+Quality-control hooks & Automatically validate inputs, enforce invariants, test reversed input order, and block unsupported conclusions. \\
+Critic agent & Examines conflicts among structured, embedding, population, and LLM signals and assesses clinical coherence. \\
+Human reviewer & Resolves ambiguous, low-confidence, or out-of-distribution cases. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+For each criterion pair, the orchestrator will:
+
+\begin{enumerate}
+    \item validate the Modern AutoCrit extraction and determine whether the criteria are atomic;
+    \item identify the clinical domain and select a numeric or clinical-concept comparison skill;
+    \item invoke deterministic logic and population tools when applicable;
+    \item obtain embedding features and a constrained LLM relationship assessment;
+    \item apply the fitted hybrid model and estimate uncertainty;
+    \item run consistency hooks and critic review; and
+    \item return an accepted, rejected, or review-required result with supporting evidence.
+\end{enumerate}
+
+The hooks will test properties such as $d(A,A)=0$, valid probability ranges, unit compatibility, zero overlap for disjoint intervals, and correct reversal of containment or restrictiveness when the input order is swapped. The agent will load learned parameters from a versioned model artifact rather than changing them during a comparison.
+
+\section{Statistical Method}
+
+The system will first estimate a relationship rather than forcing every pair into one undifferentiated scalar. Candidate classes are equivalent, partially overlapping, disjoint, $A$ contained in $B$, $B$ contained in $A$, and unrelated. Restrictiveness will be modeled directionally.
+
+For a reference population $X_1,\ldots,X_n$, the primary interpretable continuous outcome is eligibility disagreement:
+
+\[
+\widehat d_{\mathrm{pop}}(A,B)
+=\frac{1}{n}\sum_{r=1}^{n}
+\left|I_A(X_r)-I_B(X_r)\right|.
+\]
+
+This estimates the proportion of individuals whose eligibility differs between criteria $A$ and $B$. The analysis will also estimate coverage, overlap, and containment through $P(A)$, $P(B)$, $P(A\cap B)$, $P(A\mid B)$, and $P(B\mid A)$.
+
+The hybrid model will combine structured, population, embedding, and LLM-derived signals:
+
+\[
+d_{\theta}(A,B)=
+w_s d_{\mathrm{structured}}(A,B)
++w_p d_{\mathrm{population}}(A,B)
++w_e d_{\mathrm{embedding}}(A,B)
++w_l d_{\mathrm{LLM}}(A,B),
+\]
+
+where $w_k\geq0$ and $\sum_k w_k=1$. These constraints can be enforced with a softmax parameterization. The weights will be estimated on training data and evaluated on held-out criterion families. Domain-specific scale parameters may be included if the available sample supports them, but exact logical relationships will not be overridden by learned weights.
+
+A multinomial logistic model will provide an interpretable initial relationship classifier. A nonlinear model may be added as a comparison, but the project will prioritize calibration, uncertainty, and interpretability over model complexity. Bootstrap intervals will quantify uncertainty, and grouped cross-validation will prevent perturbed versions of the same source criterion from appearing in both training and test data.
+
+\section{Evaluation Cases}
+
+\subsection{Controlled case: age criteria}
+
+Age criteria will be represented as intervals with explicit open and closed endpoints. Controlled pairs will cover equivalence, containment, partial overlap, boundary contact, and disjointness. Their exact relationships provide ground truth for testing the parser, distance tools, agent routing, and quality-control hooks.
+
+Population disagreement will be evaluated under multiple simulated or empirical age distributions. This will demonstrate that the same threshold change can have different consequences in different target populations. It will also expose cases in which cosine similarity remains high despite logical contradiction or substantial population disagreement.
+
+\subsection{Primary challenge: ambiguous clinical sentences}
+
+The second evaluation will use criteria involving negation, disease history, severity, temporality, permissions, and exceptions. Examples include cardiovascular-history exclusions and statements permitting controlled comorbidities. These cases will test whether the agent correctly routes a pair away from interval-only comparison and toward terminology, structured-field, embedding, and constrained LLM tools.
+
+Human reviewers will label relationship class, restrictiveness direction, confidence, and rationale for a selected set of pairs. A subset will be labeled independently to estimate inter-rater agreement. Disagreements will be adjudicated but retained as evidence of inherent ambiguity. The agent should escalate uncertain pairs rather than forcing a definitive result.
+
+\section{Models and Implementation}
+
+The project will design the comparison framework and statistical distance model rather than train a language model from random initialization. A pretrained sentence encoder may be used as a frozen baseline and feature generator. This allows the study to measure the limitations of ordinary semantic similarity without making routine model fine-tuning the primary contribution. If course rules permit, fine-tuning can be included only as an additional ablation.
+
+The initial implementation will contain:
+
+\begin{itemize}
+    \item an interval parser and exact relationship engine;
+    \item population coverage, disagreement, simulation, and bootstrap tools;
+    \item a frozen embedding baseline;
+    \item a constrained LLM relationship tool;
+    \item a fitted and calibrated fusion model;
+    \item numeric-comparison and ambiguous-sentence skills;
+    \item input, post-comparison, and pre-report hooks; and
+    \item an orchestrator and critic workflow integrated with Modern AutoCrit.
+\end{itemize}
+
+Every output will record the source criteria, normalized representations, invoked tools, reference population, model version, uncertainty, hook results, and escalation status.
+
+\section{Evaluation Plan}
+
+The main ablation study will compare structured-only, embedding-only, LLM-only, structured-plus-embedding, and complete hybrid models. Relationship classification will be evaluated with macro-F1, class-specific sensitivity and specificity, log loss, Brier score, calibration plots, and confusion matrices. Directional restrictiveness will be evaluated using accuracy, agreement, and input-order reversal tests. Population disagreement predictions will be evaluated using mean absolute error, rank correlation, calibration, and bootstrap confidence intervals.
+
+Agent performance will be evaluated separately from distance accuracy. Outcomes will include correct workflow selection, tool-call validity, hook failure detection, escalation sensitivity, unsupported-answer rate, and the proportion of cases resolved without human review. Error analysis will distinguish failures caused by extraction, routing, terminology, statistical modeling, LLM assessment, or genuine clinical ambiguity.
+
+\section{Ten-Week Scope}
+
+The minimum viable project is an end-to-end agentic comparison system validated on age criteria and one curated set of ambiguous clinical sentences. A proposed schedule is:
+
+\begin{center}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.15\linewidth} >{\raggedright\arraybackslash}p{0.75\linewidth}}
+\toprule
+\textbf{Weeks} & \textbf{Work} \\
+\midrule
+1--2 & Finalize relationship definitions, annotation schema, system interfaces, and age-pair generator. \\
+3--4 & Implement interval, population, embedding, and LLM tools plus the first comparison skill and hooks. \\
+5--6 & Fit the hybrid model, run age experiments, and complete calibration and uncertainty analyses. \\
+7--8 & Curate and label ambiguous sentence pairs; extend routing, terminology handling, and critic review. \\
+9 & Run ablations, agent evaluations, stress tests, and error analysis. \\
+10 & Integrate the demonstration, document limitations, and prepare the final report and presentation. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+With three team members, work can be divided among statistical modeling and simulation, agent/tool development, and benchmark creation and evaluation, with shared responsibility for integration and review.
+
+\section{Expected Contribution and Extensions}
+
+The expected contribution is an auditable agentic system that recognizes when semantic similarity is misleading, selects an appropriate comparison method, applies a statistically learned population-aware distance, verifies its output, and escalates ambiguous cases. The research contribution is the evaluation of whether structured logic, embeddings, and LLM assessment provide complementary information and whether their combination improves held-out accuracy and calibration.
+
+If the core project is completed early, extensions may include additional laboratory or medication domains, hierarchical parameters across criterion types, and alignment of complete protocols using matching or unbalanced optimal transport. These are secondary to demonstrating a reliable agentic workflow and statistically validated criterion-level comparison.
+
+\end{document}

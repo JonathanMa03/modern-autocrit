@@ -1,0 +1,416 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,booktabs,array}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+
+\setlist[itemize]{leftmargin=1.5em,itemsep=0.3em,topsep=0.4em}
+\setlist[enumerate]{leftmargin=1.7em,itemsep=0.35em,topsep=0.4em}
+\setlength{\emergencystretch}{1.5em}
+
+\title{MetricSpace: A Hybrid Statistical Distance for Clinical Trial Eligibility Criteria}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+
+\newpage
+\section{Project Motivation}
+
+Modern AutoCrit converts free-text clinical trial eligibility criteria into normalized, atomic, structured records. This creates an opportunity to move beyond extraction and ask a downstream statistical question: how similar are the populations defined by two criteria or two complete protocols? A useful answer could support trial retrieval, protocol comparison, eligibility optimization, assessment of generalizability, and selection of historical information for trial design.
+
+Existing comparison approaches each capture only part of the problem. Structured rules work well when the relevant information can be represented as entities, operators, thresholds, units, intervals, negation, and temporal qualifiers. For example, ``age $\leq 60$'' and ``age $>60$'' are lexically and semantically similar, but they define disjoint sets. A sentence-embedding model may place them close together because they share almost all of their words. Conversely, more complex criteria such as ``no history of clinically significant cardiovascular disease'' and ``patients with well-controlled hypertension are permitted'' cannot be compared reliably using numeric thresholds alone. Their relationship depends on clinical concepts, exceptions, disease hierarchies, and the intended interpretation of the protocol.
+
+MetricSpace will compare structured, embedding-based, and large-language-model-based approaches and develop a hybrid method that better represents similarity, contradiction, containment, and restrictiveness. The project will emphasize statistical evaluation and uncertainty rather than presenting an unvalidated model score as a clinical fact.
+
+\section{Central Statistical Question}
+
+The initial goal should not be to force every relationship into one scalar distance. Eligibility criteria exhibit several mathematically distinct relationships:
+
+\begin{itemize}
+    \item \textbf{Semantic similarity} is generally symmetric and measures similarity of clinical meaning or subject matter.
+    \item \textbf{Contradiction or disjointness} is symmetric but is not equivalent to ordinary dissimilarity.
+    \item \textbf{Containment} is directional: every patient satisfying one criterion may also satisfy another, without the reverse being true.
+    \item \textbf{Restrictiveness} is directional and may depend on the target population.
+    \item \textbf{Population disagreement} depends on the distribution of patient characteristics, not merely the wording of the criteria.
+\end{itemize}
+
+For two criteria $c_i$ and $c_j$, the first model should therefore estimate a relationship vector such as
+
+\[
+R(c_i,c_j)=
+\begin{bmatrix}
+P(\text{equivalent}) &
+P(\text{overlap}) &
+P(\text{disjoint}) &
+P(c_i\subset c_j) &
+P(c_j\subset c_i) &
+P(\text{unrelated})
+\end{bmatrix}^{\!T}.
+\]
+
+Continuous outputs can be added for semantic distance, clinical distance, directional restrictiveness, and expected population disagreement. A single composite score can later be derived for applications that require ranking, but retaining the component outputs makes the result more interpretable and avoids conflating clinically different relationships.
+
+\section{Proposed System}
+
+The proposed workflow begins with a clinical protocol and uses Modern AutoCrit to generate atomic normalized criteria. Every pair of relevant criteria is then evaluated by three complementary components:
+
+\begin{enumerate}
+    \item a structured comparison based on the extracted clinical and logical fields;
+    \item an embedding comparison based on the original and normalized language; and
+    \item a constrained LLM assessment for relationships that cannot be resolved from structured values alone.
+\end{enumerate}
+
+These signals become predictors in a statistical fusion model. The model produces relationship probabilities, a restrictiveness direction, uncertainty estimates, and, when population data are available, an estimate of how often the criteria would disagree about an individual's eligibility.
+
+\subsection{Structured component}
+
+The structured component should use fields already available from Modern AutoCrit or added during normalization:
+
+\begin{itemize}
+    \item clinical entity and attribute;
+    \item inclusion or exclusion status;
+    \item comparison operator;
+    \item normalized threshold, interval, and unit;
+    \item negation and exceptions;
+    \item temporality, duration, and recency;
+    \item severity or disease-state qualifiers;
+    \item terminology identifiers and hierarchy relationships; and
+    \item extraction and normalization confidence.
+\end{itemize}
+
+For compatible numeric intervals $A$ and $B$, a useful baseline is a Jaccard-style interval distance,
+
+\[
+d_{\mathrm{interval}}(A,B)
+=1-\frac{\mu(A\cap B)}{\mu(A\cup B)},
+\]
+
+where $\mu$ denotes interval length or, preferably, probability mass under a reference population. The comparison should also retain separate indicators for overlap, containment, boundary displacement, and logical contradiction. This prevents two disjoint rules from appearing close merely because their thresholds are numerically adjacent.
+
+\subsection{Embedding component}
+
+An embedding baseline will encode each original criterion and compute cosine distance. Additional representations should be tested because each removes or emphasizes different information:
+
+\begin{itemize}
+    \item the original criterion text;
+    \item a canonical sentence reconstructed from the structured fields;
+    \item entity and attribute text encoded separately;
+    \item criteria with numeric values masked; and
+    \item criteria with operators and values expanded into explicit language.
+\end{itemize}
+
+The comparison will test the hypothesis that general semantic embeddings perform well on paraphrases but poorly on small, clinically decisive changes involving numbers, negation, direction, and time. For instance, ``age $\geq18$'' and ``age $\leq18$'' may receive high cosine similarity even though their eligible populations overlap only at the boundary.
+
+\subsection{LLM-assisted relationship assessment}
+
+The LLM component will receive two source criteria and their structured representations. It will return a constrained classification of equivalence, partial overlap, disjointness, containment, contradiction, or unrelatedness, followed by a directional assessment of restrictiveness. The response should use a fixed schema and preserve a short rationale for audit purposes.
+
+The LLM output will be treated as a model-derived feature rather than ground truth. Its reliability should be measured through repeated calls, reversed pair order, alternative prompts, and, if feasible, multiple models. A valid directional model should reverse $c_i\subset c_j$ to $c_j\supset c_i$ when the order is swapped while leaving symmetric relationships stable.
+
+\subsection{Statistical fusion model}
+
+For a criterion pair, define a feature vector
+
+\[
+\begin{aligned}
+x_{ij}=\big[&d_{\mathrm{embedding}},d_{\mathrm{ontology}},
+\text{entity match},\text{operator relation},\text{interval overlap},\\
+&\text{negation mismatch},\text{temporal mismatch},
+\text{LLM probabilities},\text{extraction confidence}\big].
+\end{aligned}
+\]
+
+The first hybrid model can be deliberately simple and interpretable. Multinomial logistic regression can estimate the relationship class, while an ordinal or binary model can estimate relative restrictiveness. Gradient-boosted trees can serve as a nonlinear comparator. A hierarchical model could allow the coefficients or intercepts to differ by criterion domain:
+
+\[
+\operatorname{logit}P(Y_{ij}=k)
+=\alpha_{k,\mathrm{domain}}+\beta_k^T x_{ij}.
+\]
+
+This structure would help determine whether embeddings, structured values, and LLM judgments have different value for demographic, laboratory, medication, cardiovascular, and disease-history criteria.
+
+\section{Learnable Distance Parameters}
+
+The distance should contain parameters that can be estimated rather than fixed entirely by hand. However, the learning target must be defined before fitting those parameters. A model trained to reproduce expert similarity ratings may differ from one trained to predict how often two criteria select different patients. For the initial project, population disagreement should be the primary continuous target, with expert relationship labels as a complementary target.
+
+For two lower age limits, $A=\{X\geq a\}$ and $B=\{X\geq b\}$, a simple parametric distance is
+
+\[
+d_{\tau}(A,B)=1-\exp\left(-\frac{|a-b|}{\tau}\right), \qquad \tau>0.
+\]
+
+The scale parameter $\tau$ controls how quickly distance increases as the thresholds separate. A small value makes modest changes consequential, whereas a large value requires a wider threshold difference to produce the same distance. A population-aware alternative uses the cumulative distribution function $F$ of age in a reference population:
+
+\[
+d_F(A,B)=|F(a)-F(b)|.
+\]
+
+For two lower-bound rules, this equals the proportion of the reference population lying between the thresholds. Consequently, the same three-year change can have different effects in a pediatric cohort, a general adult cohort, and a cardiovascular cohort of older adults.
+
+The hybrid distance can combine several components:
+
+\[
+d_{\theta}(A,B)=
+w_s d_{\mathrm{structured}}(A,B)
++w_p d_{\mathrm{population}}(A,B)
++w_e d_{\mathrm{embedding}}(A,B)
++w_l d_{\mathrm{LLM}}(A,B),
+\]
+
+subject to $w_k\geq0$ and $\sum_k w_k=1$. A softmax parameterization can enforce these constraints during optimization. Domain-specific scale parameters $\tau_k$ can be learned for age, BMI, renal function, blood pressure, and other measurements. If the number of labeled pairs per domain is limited, a hierarchical model can partially pool them:
+
+\[
+\log(\tau_k)\sim N(\mu_{\tau},\sigma_{\tau}^{2}).
+\]
+
+The learnable component should not override known logic. Exact interval equivalence, containment, and disjointness should be computed deterministically when extraction is sufficiently confident. The statistical model then learns how to combine population impact, semantics, and uncertain clinical context. A useful two-stage design is therefore
+
+\[
+\text{logical relationship}\;\longrightarrow\;
+\text{distance conditional on that relationship}.
+\]
+
+Parameters should be estimated only on a training partition and selected by grouped cross-validation. Constraints, regularization, and bootstrap confidence intervals will reduce overfitting and reveal whether the fitted weights are stable. The evaluation should compare learned weights with equal weights and with structured-only rules; a learnable parameter is useful only if it improves held-out calibration or prediction.
+
+\section{Implementation Strategy: New Method, Existing Encoders}
+
+The project should design the distance framework and statistical learning procedure from scratch, but it should not train a transformer language model from random initialization. Training a foundation encoder from scratch would require far more text and computation than the project can justify and would distract from the methodological question. The original contribution is the relationship representation, structured logic, population-aware target, constrained fusion model, and evaluation framework.
+
+Pretrained Hugging Face models can still be used appropriately as frozen comparison tools. For example, \href{https://huggingface.co/sentence-transformers/all-mpnet-base-v2}{\texttt{sentence-transformers/all-mpnet-base-v2}} can supply a general-purpose sentence-embedding baseline. The Sentence Transformers interface supports cosine, dot-product, Euclidean, and Manhattan comparisons, making it straightforward to test whether conclusions depend on the conventional cosine measure. A biomedical sentence encoder may be added as a second frozen baseline, provided that its model card documents sentence-level use and an appropriate license.
+
+This distinction addresses the concern that the project cannot consist only of fine-tuning a Hugging Face model. The proposed levels of implementation are:
+
+\begin{enumerate}
+    \item \textbf{Required contribution:} implement exact interval logic, population disagreement, the labeled relationship taxonomy, learnable constrained weights, calibration, and statistical evaluation.
+    \item \textbf{Required baseline:} run one or more pretrained encoders without updating their weights and measure their failure modes on threshold, negation, and contradiction cases.
+    \item \textbf{Optional comparison:} if course rules permit, fine-tune an encoder on the same training folds and evaluate it as one additional ablation. It must not replace the structured and statistical method or become the sole project contribution.
+    \item \textbf{Not recommended:} train a transformer from random initialization or present ordinary embedding fine-tuning as the new metric.
+\end{enumerate}
+
+The first implementation can therefore use standard Python statistical tools for interval operations, simulation, optimization, regression, calibration, and bootstrapping. A frozen Sentence Transformer produces the embedding feature; Modern AutoCrit produces the structured features; and the existing LLM interface produces a constrained relationship assessment. A project-specific module then combines these inputs and learns the new distance parameters.
+
+At the sentence stage, two optional neural comparisons are possible. A bi-encoder separately embeds each criterion and is efficient for large-scale retrieval. A cross-encoder reads the pair jointly and may classify fine-grained relationships more accurately, but it is slower and still does not guarantee logical consistency. Both should remain benchmarks against the proposed hybrid method unless the instructor explicitly approves model fine-tuning as one component of a broader statistical project.
+
+\subsection{Suggested software modules}
+
+The implementation can be separated into auditable components:
+
+\begin{itemize}
+    \item \texttt{age\_intervals.py}: parse canonical age rules and calculate exact interval relationships;
+    \item \texttt{population\_distance.py}: simulate or load reference populations and calculate eligibility disagreement;
+    \item \texttt{embedding\_baseline.py}: encode original and canonical criteria using frozen pretrained models;
+    \item \texttt{pair\_labels.py}: store human relationship labels, confidence, and adjudication status;
+    \item \texttt{distance\_model.py}: fit constrained weights, domain scales, and calibrated relationship models;
+    \item \texttt{evaluation.py}: perform grouped splits, ablations, bootstrap intervals, and order-reversal tests; and
+    \item a Modern AutoCrit adapter that converts extracted criteria into the comparison schema.
+\end{itemize}
+
+Model artifacts should record the encoder name and revision, training data split, learned parameters, reference population, calibration method, and software version. This makes a reported distance reproducible and clarifies whether it represents language similarity, logical difference, or population disagreement.
+
+\section{Agentic Layer: Orchestration, Tools, Skills, and Hooks}
+
+The agentic layer should sit above the statistical distance engine. The learned model performs a calibrated measurement; the agent decides which validated operation is appropriate, gathers the required context, sequences tools, checks whether the result is trustworthy, and converts it into an auditable report. The system should therefore combine orchestration with explicit tools, reusable skills, and automatic quality-control hooks rather than relying on a monolithic LLM prompt.
+
+The division of responsibility is:
+
+\begin{itemize}
+    \item the \textbf{statistical layer} learns calibrated weights, domain scales, relationship probabilities, and uncertainty;
+    \item deterministic \textbf{tools} execute interval logic, unit conversion, population calculations, terminology lookup, and fitted-model inference;
+    \item \textbf{skills} define reusable, ordered workflows for recognizable comparison tasks;
+    \item \textbf{hooks} enforce invariants automatically at extraction, comparison, and reporting boundaries;
+    \item the \textbf{orchestrator agent} selects and sequences the appropriate capabilities;
+    \item a \textbf{critic or reconciliation agent} evaluates contextual coherence and conflicts between signals; and
+    \item a \textbf{human reviewer} resolves genuinely ambiguous or high-impact cases.
+\end{itemize}
+
+This separation prevents the LLM from performing calculations that should be reproducible and prevents learned parameters from changing during an individual comparison. Model weights are estimated offline, validated, versioned, and loaded at runtime. The agent may choose the applicable model but may not invent new weights for a convenient answer.
+
+\subsection{Deterministic tools}
+
+Tools should implement operations for which the correct behavior can be specified and tested. The initial tool set can include:
+
+\begin{itemize}
+    \item \texttt{parse\_age\_interval}: convert a normalized age criterion into an interval with open or closed endpoints;
+    \item \texttt{compare\_intervals}: return equivalence, overlap, containment, disjointness, and boundary relationships;
+    \item \texttt{normalize\_unit}: convert compatible measurements to a canonical unit;
+    \item \texttt{estimate\_coverage}: estimate the proportion of a reference population satisfying one criterion;
+    \item \texttt{estimate\_disagreement}: estimate $P\{I_A(X)\neq I_B(X)\}$;
+    \item \texttt{bootstrap\_distance}: calculate uncertainty intervals;
+    \item \texttt{embed\_criterion}: produce a versioned embedding feature;
+    \item \texttt{terminology\_distance}: compare governed terminology concepts; and
+    \item \texttt{predict\_relationship}: apply a specific fitted and calibrated model artifact.
+\end{itemize}
+
+For example, the interval comparison tool should return structured fields rather than prose:
+
+\begin{verbatim}
+{
+  "relationship": "disjoint",
+  "intersection": null,
+  "a_contains_b": false,
+  "b_contains_a": false,
+  "logic_confidence": 1.0
+}
+\end{verbatim}
+
+The agent can explain this result, but it cannot alter the computed relationship.
+
+\subsection{Reusable skills}
+
+A skill encodes how multiple tools should be combined for a recurring task. The first four skills should be:
+
+\paragraph{Compare numeric eligibility.}
+Validate that the criteria concern compatible attributes, normalize units, parse intervals, calculate exact logic, select a reference population, calculate population disagreement, add embedding features, apply the fitted distance model, and produce an evidence-backed result.
+
+\paragraph{Compare clinical concepts.}
+Confirm atomic segmentation, resolve terminology identifiers, compare ontology positions, check negation, temporality, severity, and exceptions, and use an LLM classification only when structured evidence is insufficient. Low-confidence cases are routed to review.
+
+\paragraph{Compare protocols.}
+Validate extracted criteria, group them by domain, propose candidate alignments, calculate pairwise costs, apply matching or unbalanced optimal transport, identify unmatched criteria, and report overall and domain-specific distances.
+
+\paragraph{Audit a distance result.}
+Reverse the criterion order, check symmetric and directional properties, verify that known logical rules override misleading semantic similarity, confirm units and model applicability, and classify the result as accepted, rejected, or review-required.
+
+\subsection{Automatic hooks}
+
+Hooks run automatically at fixed workflow boundaries and should not depend on the agent remembering to request them.
+
+\paragraph{Post-extraction hook.}
+Check required fields, confirm that the canonical representation preserves negation and temporality, detect compound criteria, validate values and units, and attach extraction confidence.
+
+\paragraph{Pre-distance hook.}
+Confirm attribute compatibility, normalize units, select the appropriate comparison function, load the correct domain model and reference population, and reject inputs with unresolved required fields.
+
+\paragraph{Post-distance hook.}
+Require $d(A,A)=0$; check symmetry only for symmetric outputs; require containment and restrictiveness to reverse when inputs are swapped; verify that probabilities sum to one; prevent disjoint intervals from reporting positive overlap; and enforce the score's valid range.
+
+\paragraph{Pre-report hook.}
+Require traceable inputs for each conclusion, attach model and terminology versions, record the reference population, include uncertainty and limitations, and prevent low-confidence output from being presented as definitive.
+
+Hooks handle formal invariants, while the critic handles clinical coherence. For example, a hook can detect incompatible units or a containment result that fails to reverse. The critic can ask whether ``well-controlled hypertension is permitted'' materially modifies a broader cardiovascular exclusion in the context of the surrounding protocol.
+
+\subsection{Agent workflow and escalation}
+
+For a new pair, the orchestrator should validate extraction, identify the criterion type, select the appropriate skill, invoke its tools, run the mandatory hooks, and request critic review if the structured, embedding, and LLM signals conflict. The final result should preserve the tool outputs, model version, evidence, uncertainty, and reason for any escalation.
+
+Out-of-distribution detection is particularly important. At runtime, the agent loads a validated domain parameter $\widehat\theta_k$, checks whether the criterion resembles the data used to fit it, and refuses to make a definitive comparison when it does not. This makes the agent responsible for safe model use, not for changing the statistical model.
+
+\subsection{Minimal age-focused agent}
+
+The course-project implementation can begin with one orchestrator rather than a large multi-agent system. It needs three primary tools---\texttt{parse\_age\_interval}, \texttt{compare\_age\_intervals}, and \texttt{estimate\_age\_population\_distance}---plus an input-normalization hook, a relationship-consistency hook, a \texttt{compare\_age\_criteria} skill, and an \texttt{audit\_age\_comparison} skill.
+
+For ``age $\geq18$'' versus ``age $<18$,'' the orchestrator would recognize the age domain, route the pair to exact interval comparison, select the prespecified reference distribution, compute population disagreement, compare the result with embedding similarity, and invoke the audit skill. A high embedding similarity combined with exact disjointness would be reported as a semantic-similarity failure rather than averaged into a misleading middle-distance score.
+
+Complex criteria can later add terminology retrieval, atomic segmentation, LLM relationship classification, and critic review. This staged implementation makes the system genuinely agentic through tool selection, workflow composition, validation, and escalation while keeping the statistical contribution independently testable.
+
+\section{Benchmark and Ground Truth}
+
+The most important early deliverable is a reviewed criterion-pair benchmark. Each row should record the two original criteria, their structured representations, clinical domain, relationship label, restrictiveness direction, reviewer confidence, and a brief human rationale.
+
+The benchmark should contain three complementary sources of pairs:
+
+\begin{enumerate}
+    \item \textbf{Real pairs} sampled from trials in the same indication or therapeutic area.
+    \item \textbf{Controlled perturbations} generated from real criteria by changing a threshold, operator, negation, unit, severity, time window, concept, or exception.
+    \item \textbf{Challenge pairs} written or selected to represent clinically complex relationships that structured rules alone cannot settle.
+\end{enumerate}
+
+Controlled perturbations provide known logical answers and make it possible to isolate specific failure modes. Real pairs test robustness to clinical language and extraction noise. Challenge pairs test whether the hybrid approach adds value for statements involving disease hierarchies, exceptions, and implicit clinical relationships.
+
+At least two reviewers should label a subset of the pairs independently. Inter-rater agreement should be reported with Cohen's kappa or an appropriate multiclass alternative. Disagreements should be reconciled into an adjudicated reference set, while the original disagreement is retained as a measure of task ambiguity.
+
+\section{Population-Based Interpretation}
+
+When a reference cohort or synthetic population is available, the most interpretable distance is the probability that two criteria disagree about eligibility. For patients $X_1,\ldots,X_n$, define
+
+\[
+\widehat d_{\mathrm{pop}}(A,B)
+=\frac{1}{n}\sum_{r=1}^{n}
+\left|I_A(X_r)-I_B(X_r)\right|.
+\]
+
+The analysis should also estimate
+
+\[
+\widehat P(A),\qquad
+\widehat P(B),\qquad
+\widehat P(A\cap B),\qquad
+\widehat P(A\mid B),\qquad
+\widehat P(B\mid A).
+\]
+
+These quantities separate coverage, overlap, and directional containment. They also show why restrictiveness cannot always be inferred from text alone. Moving an age threshold by five years may have different effects in a pediatric cohort, a general adult cohort, and an older cardiovascular population.
+
+If patient-level data are unavailable, an initial study can use simulated covariates based on plausible or published marginal distributions. Results must then be described as model-based population distances rather than empirical clinical validation. Sensitivity analyses should vary distributional assumptions and dependence between covariates.
+
+\section{Evaluation Plan}
+
+The central comparison should be an ablation study involving:
+
+\begin{enumerate}
+    \item structured features only;
+    \item embeddings only;
+    \item LLM assessment only;
+    \item structured features plus embeddings;
+    \item structured features plus the LLM; and
+    \item the complete hybrid model.
+\end{enumerate}
+
+For relationship classification, evaluation should include macro-F1, class-specific sensitivity and specificity, log loss, Brier score, calibration plots, and confusion matrices. Restrictiveness evaluation should include directional accuracy, weighted agreement, calibration, and consistency after reversing criterion order. Continuous population disagreement can be evaluated using mean absolute error, rank correlation, calibration, and bootstrap confidence intervals.
+
+Data splitting must occur by source trial or base criterion rather than by individual pair. Randomly splitting perturbed versions of the same criterion would place near-duplicates in the training and test sets and overstate generalization. Performance should also be stratified by clinical domain and by whether the source extraction was correct.
+
+Important stress tests include unit conversions, threshold reversals, single token negation changes, and changes to temporal windows. They should also cover terminology hierarchy substitutions, compound criteria, and deliberately ambiguous pairs. Error analysis should distinguish failures caused by extraction, terminology mapping, the comparison model, or genuine clinical ambiguity.
+
+\section{Extension to Trial-Level Distance}
+
+A trial contains a set of criteria rather than a single rule. After validating criterion-level comparisons, two protocols can be compared by constructing a pairwise cost matrix and aligning their criteria through bipartite matching or unbalanced optimal transport. For trials $T_a$ and $T_b$, a general form is
+
+\[
+D(T_a,T_b)
+=\min_{\gamma}\sum_{i,j}\gamma_{ij}
+d\!\left(c_i^{(a)},c_j^{(b)}\right)
++\lambda\,\mathcal{P}(\gamma),
+\]
+
+where $\gamma$ is the criterion alignment and $\mathcal{P}$ penalizes unmatched mass. Unbalanced transport is useful because protocols may contain different numbers of criteria. The output should include both an overall score and an interpretable alignment showing the criteria that contribute most strongly to the difference.
+
+Trial-level comparisons could later support retrieval of comparable studies, assessment of eligibility changes, transportability analyses, and distance-weighted historical borrowing. Those uses require separate validation; the initial course project should focus on establishing that the criterion-level measure is reliable and interpretable.
+
+\section{Recommended Development Sequence}
+
+The project should begin with age criteria because their logical relationships can be determined exactly and their population effects can be simulated transparently. Age is a validation sandbox rather than the final scope of MetricSpace.
+
+\begin{enumerate}
+    \item Extract and normalize age criteria from a collection of protocols.
+    \item Represent each rule as an interval with explicit open or closed endpoints.
+    \item Generate controlled pairs covering equivalence, containment, partial overlap, boundary contact, and disjointness.
+    \item Compare raw-text embedding similarity with the exact interval relationships.
+    \item Estimate population disagreement under several reference age distributions.
+    \item Add the constrained LLM relationship classifier and test stability when the order of each pair is reversed.
+    \item Fit and calibrate the learnable scale and fusion weights using grouped training and validation partitions.
+    \item Evaluate on held-out thresholds and held-out population distributions.
+\end{enumerate}
+
+Once this end-to-end pipeline works, it can expand in stages:
+
+\begin{enumerate}
+    \item BMI and single laboratory thresholds with normalized units;
+    \item numeric criteria that include temporal windows or repeated measurements;
+    \item categorical diagnoses, procedures, and medication criteria;
+    \item negated and historical disease criteria; and
+    \item compound sentences containing exceptions, permissions, severity, or multiple logical clauses.
+\end{enumerate}
+
+Each new criterion family should be added only after defining its reference representation and expected failure cases. This progression separates defects in the statistical distance from defects in extraction or clinical-language interpretation. Complex sentence pairs can then test the incremental value of embeddings and LLM assessment without obscuring whether the core metric works.
+
+The first formal experiment should compare an embedding-only baseline, exact structured distance, population distance, LLM-only assessment, and learned hybrid model on the same held-out age pairs. The principal result would test whether the hybrid method recovers logical and population differences that ordinary semantic similarity misses.
+
+\end{document}
