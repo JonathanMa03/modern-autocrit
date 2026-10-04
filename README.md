@@ -41,8 +41,7 @@ AND/OR relations, inclusion/exclusion, and verbatim source text remain distinct.
 The distinction between clinical domains, value fields, semantic constructs,
 and relations is adapted from the
 [Chia clinical-trial eligibility corpus](https://www.nature.com/articles/s41597-020-00620-0).
-The project uses a compact JSON/CSV projection rather than claiming full Chia
-annotation-graph compatibility.
+The project uses a compact JSON/CSV projection rather than a full annotation-graph compatibility.
 
 The packaged [base criteria library](config/base_criterion_library.json) is read-only.
 Only timestamped generated snapshots receive reviewed additions.
@@ -138,6 +137,15 @@ The API key stays on the local backend and is never entered into the browser.
 6. Use **Criteria library** to search the immutable examples and latest reviewed
    trial criteria.
 
+## Interface
+
+![Ingestion Window](docs/screenshots/ingestion.png)
+
+![Validation Window](docs/screenshots/validation.png)
+
+![Dictionary Window](docs/screenshots/lookup.png)
+
+
 ## Outputs
 
 ### Structured review rows
@@ -158,7 +166,7 @@ Each extracted row provides:
 | `repetition` | Frequency or multiplicity, such as `on three occasions`. |
 | `qualifier` | Severity, exception, or other clinically material modifier. |
 | `logical_operator` | Standalone, AND, or OR relationship for concepts from a shared source. |
-| `relations` | Derived Chia-style labels such as `HAS_VALUE` and `HAS_TEMPORAL`. |
+| `relations` | Derived graph-based labels such as `HAS_VALUE` and `HAS_TEMPORAL`. |
 | `source_id`, `source` | Stable provenance identifier and verbatim protocol evidence. |
 
 ### Files created
@@ -194,15 +202,15 @@ upgrade and are not modified.
 ## Architecture
 
 ```text
-main.py                         launcher
-webapp/server.py                HTTP API and static-file server
-webapp/static/                  three-panel browser interface
-backend/eav_pipeline.py         segmentation and Chia-inspired semantic normalization
-backend/services/eav_workflow.py jobs, retries, progress, review, JSON/CSV snapshots
-backend/services/ctgov_v2_service.py ClinicalTrials.gov v2 retrieval
-backend/services/llm/           OpenAI SDK boundary
-config/base_criterion_library.json immutable packaged seed library
-runtime/criteria/               ignored local jobs and reviewed snapshots
+main.py                               launcher
+webapp/server.py                      HTTP API and static-file server
+webapp/static/                        three-panel browser interface
+backend/eav_pipeline.py               segmentation and Chia-inspired semantic normalization
+backend/services/eav_workflow.py      jobs, retries, progress, review, JSON/CSV snapshots
+backend/services/ctgov_v2_service.py  ClinicalTrials.gov v2 retrieval
+backend/services/llm/                 OpenAI SDK boundary
+config/base_criterion_library.json    immutable packaged seed library
+runtime/criteria/                     ignored local jobs and reviewed snapshots
 ```
 
 ## Testing
