@@ -6,25 +6,43 @@ This changelog documents the repository from its initial scaffold through the cu
 
 ### Added
 
-- Added the browser-based Automated Eligibility Criteria Extraction interface, ClinicalTrials.gov API ingestion, atomic eligibility segmentation, governed EVA extraction, review and reconciliation, recoverable jobs, result caching, and clinical-distance analysis.
+- Added the three-panel browser workflow for protocol ingestion, human review, and structured-criteria library inspection.
+- Added input by ClinicalTrials.gov NCT ID, pasted eligibility text, or complete protocol PDF. PDF ingestion locates eligibility sections and excludes subsequent protocol sections such as the SAP and schedule of activities.
+- Added progress events reporting protocol loading, located source criteria, completed extraction batches, retries, semantic normalization, completion, and failure.
+- Added a strict, Chia-inspired structured-criterion schema with clinical domain, canonical entity, comparator, value, unit, negation, temporal scope, repetition, qualifier, Boolean logic, stable provenance, and derived semantic relations.
+- Added explicit open and closed interval endpoints. Equivalent forms such as `aged 18 to 65`, `between 18 and 65 years`, `18–65 years of age`, and `age >=18 and <=65 years` normalize to `[18, 65]`.
+- Added Chia-style relation labels including `HAS_VALUE`, `HAS_NEGATION`, `HAS_TEMPORAL`, `HAS_MULTIPLIER`, `HAS_QUALIFIER`, `AND`, and `OR`.
+- Added an immutable v3 base criteria library and cumulative, timestamped `criteriaLibrary_*.json` and `.csv` review snapshots under both runtime storage and `config/`.
+- Added backward-compatible in-memory upgrading of historical `eavLibrary_*.json` snapshots.
+- Added complete coverage of the legacy attribute, disease, and entity maps. Entity-class aliases are adapted to current Chia domains.
+- Added common oncology terminology for diseases, performance status, laboratory concepts, response categories, and biomarkers, with exact-only protection for ambiguous abbreviations such as `ALL`, `MM`, `CR`, `PR`, `SD`, and `PD`.
+- Added deterministic handling for escaped comparators, compound numerical values, measurement units, contextual negation, repetition, temporal phrases, semicolon-delimited cutoffs, and multiple concepts sharing a source sentence.
+- Added full-protocol PDF and structured semantic regression tests.
 
 ### Changed
 
-- Consolidated the active eligibility and registry processing packages under `backend/criteria_processor/` and `backend/ctg_parser/`.
-- Replaced the former desktop and XML/Excel extraction path with the browser-first  extraction service.
-- Reduced application configuration and dependencies to those used by the active browser workflow.
-- Corrected the canonical attribute mapping for `ability to swallow oral medication` so it normalizes to the plural form, `ability to swallow oral medications`.
-- Reconstructed this changelog from the complete Git history and organized each milestone by additions, changes, and removals.
+- Replaced flat Entity–Attribute–Value output with MetricSpace-ready structured criteria.
+- Replaced categorical `0`/`1` values with the explicit values `absent` and `present`, while retaining negation as a separate construct.
+- Separated comparison values from units and interval endpoints; ratios such as `145/95` remain literal compound values.
+- Reworked the extraction prompt to require atomic clinical concepts, Chia domains, source-bounded evidence, explicit semantic constructs, and AND/OR relationships.
+- Changed the human-review table so every semantic field and interval endpoint can be inspected and corrected.
+- Changed reviewed library output from `eavLibrary_*` to versioned `criteriaLibrary_*` snapshots using schema `modern-autocrit.structured-criteria.v3`.
+- Replaced the active base EAV library with `config/base_criterion_library.json` and expanded `config/terminology_normalization.json` into a governed alias and domain configuration.
+- Updated the README and technical report to describe the current implementation rather than the retired desktop, reconciliation, caching, and clinical-distance subsystems.
 
 ### Removed
 
-- Removed the unused Tkinter frontend and the `frontend_pyside_backup` application.
-- Removed the superseded XML/Excel extractor, normalization pipeline, anomaly detector, integrity validator, legacy dictionary services, and their dedicated schemas and tests.
-- Removed the old trial downloader, dictionary-update scripts, benchmarking placeholders, development notebook, desktop screenshots, downloaded XML cache, and generated Excel outputs.
+- Removed the active clinical-distance panel and its legacy penalty implementation; MetricSpace will be rebuilt against the new semantic representation.
+- Removed the large retired criteria-processor, workbook terminology, reconciliation, ClinicalTrials.gov parser, desktop frontend, and obsolete test subsystems.
+- Removed the mutable base EAV configuration from the active workflow. Historical reviewed EAV snapshots remain readable for migration.
 
 ### Next steps sketch
 
-- Explore an embedding-based approach for adaptive dictionary maintenance, including semantic matching of unseen terms, suggested canonical mappings, confidence scoring, and a human-review step before dictionary updates are accepted.
+- Add recoverable batch checkpoints, raw model-call audit records, partial-failure continuation, and cancellation.
+- Separate reusable governed clinical concepts from trial-specific reviewed assertions and attach ontology identifiers where licensing permits.
+- Build an independent critic agent for atomicity, value, negation, temporal scope, terminology reuse, and uncertainty review.
+- Implement MetricSpace baselines for exact interval relations and semantic-construct disagreement, followed by embedding and LLM adjudication for ambiguous clinical language.
+- Convert human corrections and reviewed criterion pairs into supervised data for a constraint-aware dense representation.
 
 ## Validation agent and Integrity workspace
 

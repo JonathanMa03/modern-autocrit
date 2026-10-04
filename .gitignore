@@ -49,3 +49,9 @@ docs/notes/
 runtime/
 data/
 notebooks/
+
+# Human-reviewed generated EAV snapshots (base config remains tracked)
+config/eavLibrary_*.json
+config/eavLibrary_*.csv
+config/criteriaLibrary_*.json
+config/criteriaLibrary_*.csv

@@ -14,14 +14,13 @@
 \definecolor{primary}{HTML}{A6192E}
 \definecolor{accent}{HTML}{D97A00}
 \definecolor{soft}{HTML}{F7E8E2}
-\definecolor{text}{HTML}{33312E}
 \hypersetup{colorlinks=true,linkcolor=primary,urlcolor=primary,citecolor=primary}
 \setlist[itemize,enumerate]{nosep,leftmargin=*}
 \newcommand{\code}[1]{\texttt{\detokenize{#1}}}
 \newcommand{\fn}[2]{\item[\code{#1}] #2}
 
 \title{\textcolor{primary}{Automated Eligibility Criteria Extraction}\\
-\large Technical Architecture, Outputs, Errors, and Development Roadmap}
+\large Current Technical Architecture, Semantic Outputs, and MetricSpace Foundation}
 \author{Modern AutoCrit Project}
 \date{}
 
@@ -30,297 +29,255 @@
 \tableofcontents
 \newpage
 
-\section{Purpose and Scope}
+\section{Purpose and Current Scope}
 
-Automated Eligibility Criteria Extraction is a local, browser-based application that converts free-text clinical-trial eligibility criteria into atomic, governed Entity--Attribute--Value (EAV) records. A user may supply either a ClinicalTrials.gov NCT identifier or pasted eligibility text. The application retrieves or accepts the protocol text, segments it into atomic criteria, uses a large language model (LLM) to map each criterion into the terminology library, normalizes categorical and numerical values, validates the mapping, and presents a reviewable table. It also exposes a clinical-distance calculator and a read-only view of the EAV library.
+Modern AutoCrit is a local browser application that extracts clinical-trial eligibility criteria from a ClinicalTrials.gov record, pasted eligibility text, or an uploaded full protocol PDF. It produces human-reviewed, structured criteria intended to support the MetricSpace project: comparison of eligibility rules by clinical concept, logical meaning, quantitative constraint, and contextual modifiers.
 
-This report documents the current implementation rather than the retired desktop interface. It covers every active architectural layer and the public or workflow-defining functions in the project. Small private helpers are grouped with their parent subsystem where they implement one operation, such as interval comparison, canonical text cleanup, or HTTP serialization.
+The current output is deliberately richer than a flat Entity--Attribute--Value record. Each atomic criterion separates its clinical domain and entity from its comparator, value, unit, interval, negation, temporal restriction, repetition, qualifier, Boolean relationship, and verbatim source. This separation prevents phrases such as ``blood pressure $>145/95$ on three occasions'' from collapsing into one opaque entity string.
 
-\section{Lineage and Changes from AutoCriteria}
+The current application does \emph{not} include the retired desktop interface, the deleted clinical-distance screen, the former candidate-attribute critic/reconciliation system, automatic job resumption, or a full Chia annotation graph. Model output remains a review artifact rather than clinical ground truth.
 
-The project was inspired by Datta's AutoCriteria repository and paper \cite{autocriteria-repo,autocriteria-paper}. The inspiration demonstrated that an LLM could structure eligibility criteria. The current application is a substantial engineering extension:
+\section{Lineage and Design Changes}
+
+The project began from the protocol-to-structure idea demonstrated by AutoCriteria \cite{autocriteria-repo,autocriteria-paper}. The implementation now differs in several ways:
 
 \begin{itemize}
-  \item LangChain orchestration was removed in favor of direct OpenAI SDK access behind a small provider interface. This reduces framework coupling and makes prompts, schemas, token usage, and failures easier to inspect.
-  \item The original long-script organization was decomposed into services, schemas, criteria-processing modules, statistical modules, and a browser presentation layer.
-  \item The former standalone desktop GUI was replaced by a local web application served over HTTP. The browser is now the only supported interface.
-  \item ClinicalTrials.gov API v2 retrieval and parsing allow an NCT identifier to serve as the protocol input.
-  \item Extraction now includes atomic segmentation, a governed EAV terminology library, structured value and interval normalization, mapping review and reconciliation, job recovery, atomic persistence, and deterministic caching.
-  \item A clinical-distance subsystem turns normalized numerical or categorical conditions into interpretable penalties for downstream statistical work.
+  \item LangChain orchestration was replaced by a small provider interface and the OpenAI SDK.
+  \item The original long script was divided into registry, LLM, workflow, normalization, persistence, HTTP, and browser modules.
+  \item Desktop interfaces were replaced by a local, full-width web application.
+  \item ClinicalTrials.gov API v2 and full-protocol PDF ingestion were added.
+  \item Human decisions are stored in timestamped JSON and CSV snapshots instead of silently changing the immutable packaged base.
+  \item The former EAV output was replaced by a Chia-inspired structured-criterion projection. Chia distinguishes domain entities, value fields, semantic constructs, and relations; Modern AutoCrit adopts the useful distinctions in a compact tabular form without claiming full annotation-graph compatibility. See \url{https://www.nature.com/articles/s41597-020-00620-0}.
+  \item Explicit interval endpoints were added for MetricSpace. Equivalent range expressions can therefore share one computational representation.
 \end{itemize}
 
-These changes preserve the central goal of protocol-to-structure conversion while shifting the project toward a durable, auditable tool that can support trial design and population-comparison applications.
+\section{User Workflow}
 
-\section{Current Web Application}
-
-\subsection{User-facing workflow}
-
-The web interface has three tabs:
+The browser contains three panels.
 
 \begin{description}
-  \item[Extract.] Enter an NCT ID, paste eligibility text, or do both. When text is blank, the server retrieves the trial from ClinicalTrials.gov. When text is present, it is authoritative and the NCT ID is used as its label. The user can preview deterministic segmentation or run the full AI extraction.
-  \item[Clinical distance.] Compare an observed numerical value with a target criterion using a tolerance, distance scale, and condition weight. The result explains the raw distance, normalized distance, and weighted penalty.
-  \item[EAV library.] Inspect the governed entities and attributes used for extraction, including library revision and content hash.
+  \item[Extraction / ingestion.] Select an NCT identifier, paste eligibility text, or upload a complete protocol PDF. PDF ingestion searches for the actual inclusion and exclusion sections and excludes later protocol material such as the SAP and schedule of activities.
+  \item[Human review.] Sort the extracted rows, accept correct rows, or reject a row to edit its domain, entity, comparison, interval endpoints, semantic constructs, and Boolean relation. A corrected row must be saved before the collection can be applied.
+  \item[Criteria library.] Search the immutable base criteria and the latest reviewed snapshot. Historical EAV snapshots are upgraded in memory for display; their original files are not rewritten.
 \end{description}
 
-The criteria text box therefore has two purposes: it permits extraction of a local or unpublished protocol, and it permits an explicit override of the registry text for a supplied NCT ID. Leaving it blank selects registry retrieval.
+During extraction, the progress panel reports protocol loading, the number of located source criteria, completed extraction batches, retries, semantic normalization, completion, or failure.
 
-\subsection{Architecture}
+\section{Architecture}
 
 \begin{center}
 \begin{tikzpicture}[
   node distance=7mm and 7mm,
-  box/.style={draw=primary,rounded corners,fill=soft,align=center,minimum height=9mm,text width=27mm,font=\small},
+  box/.style={draw=primary,rounded corners,fill=soft,align=center,minimum height=10mm,text width=29mm,font=\small},
   arrow/.style={-{Stealth[length=2mm]},thick,color=accent}
 ]
-\node[box] (browser) {Browser UI\\HTML/CSS/\\JavaScript};
-\node[box,right=of browser] (server) {Local HTTP server\\\texttt{webapp/}\\\texttt{server.py}};
-\node[box,right=of server] (services) {Application services\\jobs, registry, LLM};
-\node[box,below=of services] (processor) {Criteria processor\\segmentation, EAV, review};
-\node[box,left=of processor] (stats) {Statistics\\clinical distance};
-\node[box,right=of processor] (storage) {Persistent artifacts\\JSON, CSV, checkpoints};
+\node[box] (browser) {Browser UI\\three workflow panels};
+\node[box,right=of browser] (server) {HTTP server\\API and static files};
+\node[box,right=of server] (workflow) {Workflow service\\jobs, review, snapshots};
+\node[box,below=of workflow] (semantic) {Semantic pipeline\\segmentation, schema, intervals};
+\node[box,left=of semantic] (sources) {Inputs\\CT.gov, text, PDF};
+\node[box,right=of semantic] (storage) {Storage\\JSON, CSV, config};
 \draw[arrow] (browser) -- (server);
-\draw[arrow] (server) -- (services);
-\draw[arrow] (services) -- (processor);
-\draw[arrow] (server) -- (stats);
-\draw[arrow] (processor) -- (storage);
+\draw[arrow] (server) -- (workflow);
+\draw[arrow] (sources) -- (semantic);
+\draw[arrow] (workflow) -- (semantic);
+\draw[arrow] (semantic) -- (storage);
 \end{tikzpicture}
 \end{center}
 
-\begin{itemize}
-  \item \code{main.py} is the launch point and calls the browser server.
-  \item \code{webapp/} contains the local server and static browser assets.
-  \item \code{backend/api/} constructs shared application state.
-  \item \code{backend/services/} owns registry access, LLM adapters, extraction jobs, costs, and files.
-  \item \code{backend/criteria_processor/} owns atomic criteria and the governed EAV workflow.
-  \item \code{backend/ctg_parser/} maps ClinicalTrials.gov v2 JSON into typed trial records.
-  \item \code{backend/statistics/} owns clinical-distance policies and analysis.
-  \item \code{config/} contains settings and the governed library; \code{runtime/eligcrit/} contains recoverable run artifacts.
-\end{itemize}
+\begin{longtable}{p{0.36\textwidth}p{0.56\textwidth}}
+\toprule
+Component & Responsibility \\
+\midrule
+\endhead
+\code{main.py} & Parses host, port, and browser options and launches the application. \\
+\code{webapp/server.py} & Routes the JSON API, limits request bodies, serves static assets safely, and starts the threaded local server. \\
+\code{webapp/static/} & Implements ingestion, progress polling, sortable review, inline correction, and library search. \\
+\code{backend/services/ctgov_v2_service.py} & Validates NCT identifiers, retrieves API v2 study JSON, and returns eligibility text. \\
+\code{backend/services/llm/} & Provides the provider-neutral boundary, OpenAI Responses API calls, strict JSON parsing, retry behavior, and token accounting. \\
+\code{backend/eav_pipeline.py} & Retains its historical filename but now owns the structured-criterion schema, source segmentation, terminology normalization, domain inference, interval parsing, semantic constructs, and relation labels. \\
+\code{backend/services/eav_workflow.py} & Persists jobs, extracts PDF sections, batches model calls, records progress, upgrades historical snapshots, validates review decisions, and writes criteria-library snapshots. \\
+\code{config/terminology_normalization.json} & Governs clinical aliases, exact-only ambiguous abbreviations, and mappings from legacy entity classes to Chia-style domains. \\
+\code{config/base_criterion_library.json} & Supplies immutable structured seed examples. \\
+\code{runtime/criteria/} & Stores ignored local job records and runtime library copies. \\
+\bottomrule
+\end{longtable}
 
-\subsection{End-to-end extraction sequence}
+\section{Extraction and Normalization Sequence}
 
 \begin{enumerate}
-  \item The browser posts the trial ID and optional criteria text to \code{/api/jobs/extract}.
-  \item \code{EligCritExtractionService.submit} validates the input. With an empty text box it calls \code{fetch_study}; otherwise it creates a registry-shaped local source document.
-  \item The source and initial job record are atomically persisted before a background thread begins.
-  \item The service computes a cache fingerprint from the criteria text, configured model, and EAV-library hash. An unchanged rerun can reuse its audit and breakdown safely.
-  \item Deterministic segmentation creates provenance-bearing atomic criteria. The LLM pipeline searches candidate attributes, makes a structured selection, normalizes values, and reviews the result.
-  \item The completed audit is written to disk. The browser polls the job endpoint and then requests a simplified cleaned result for display.
+  \item The browser posts the selected input mode and its content to \code{/api/extractions}.
+  \item The workflow validates required input. NCT mode retrieves ClinicalTrials.gov; PDF mode extracts text and locates the actual eligibility section; manual mode uses the pasted text.
+  \item \code{segment_criteria()} identifies inclusion and exclusion headings, joins wrapped lines, separates numbered or bulleted criteria, splits independent semicolon-delimited cutoffs, and assigns stable source identifiers.
+  \item Criteria are sent in bounded batches through \code{StructuredJsonAdapter} under the strict structured-criterion schema.
+  \item The model separates coordinated clinical concepts and proposes domains, values, units, temporal phrases, repetition, qualifiers, negation, and AND/OR relationships.
+  \item \code{normalize_rows()} rejects invented source strings, restores authoritative inclusion/exclusion labels, adds missing source rows, applies deterministic literal parsing, normalizes terminology, and generates stable row identifiers.
+  \item The browser presents every row for explicit human acceptance or correction.
+  \item Applying review writes a cumulative, versioned \code{criteriaLibrary_*.json} and \code{criteriaLibrary_*.csv} to both runtime storage and \code{config/}.
 \end{enumerate}
 
-The cache includes the library hash so a terminology update invalidates old mappings. A failed run is not a valid cache entry and can be rerun. Each submission receives a new job ID even when the computed extraction result is reusable.
+\section{Structured Criterion Model}
 
-\section{Function and Component Reference}
+\subsection{Domains, fields, constructs, and relations}
 
-\subsection{Entry point, HTTP server, and state}
+The compact model adapts four useful aspects of Chia:
 
-\begin{description}[style=nextline]
-  \fn{main.main()}{Starts the local browser application.}
-  \fn{run_browser_app(host, port, open_browser)}{Creates the threaded HTTP server, resumes incomplete jobs, optionally opens a browser, and serves until interrupted.}
-  \fn{BrowserApplication.dispatch(method, path, body)}{Routes health, library, segmentation, normalization, distance, parser, job, result, and cleaned-result API requests.}
-  \fn{BrowserApplication.resume()}{Delegates recovery of queued or interrupted extraction jobs.}
-  \fn{_handler(application)}{Builds the request handler, limits request bodies, converts expected exceptions into HTTP responses, and safely serves static files.}
-  \fn{_cleaned_item(item)}{Projects a full EAV audit item into the columns used by the browser table.}
-  \fn{create_app_state()}{Loads settings and constructs shared services such as cost monitoring.}
-\end{description}
+\begin{itemize}
+  \item \textbf{Domain:} observation, condition, person, device, drug, visit, procedure, or measurement.
+  \item \textbf{Entity:} the canonical clinical concept only, without its cutoff or modifier.
+  \item \textbf{Fields and constructs:} comparator, value, unit, interval bounds, negation, temporal restriction, repetition, and qualifier.
+  \item \textbf{Relations:} derived labels such as \code{HAS_VALUE}, \code{HAS_NEGATION}, \code{HAS_TEMPORAL}, \code{HAS_MULTIPLIER}, \code{HAS_QUALIFIER}, \code{AND}, and \code{OR}.
+\end{itemize}
 
-\subsection{Registry and trial parsing}
+Rows from the same source retain a shared \code{source_id}. This preserves the relationship between atomic concepts split from one sentence.
 
-\begin{description}[style=nextline]
-  \fn{fetch_study(nct_id)}{Validates the NCT identifier and downloads one study from the ClinicalTrials.gov v2 API.}
-  \fn{eligibility_text_from_study(study)}{Extracts the eligibility-criteria block and reports a clear error when it is absent.}
-  \fn{parse_ctgov_study(study)}{Converts registry JSON into typed identification, status, design, intervention, outcome, and eligibility fields.}
-  \fn{_module(), _date_value()}{Defensively retrieve nested protocol modules and normalized date values.}
-\end{description}
+\subsection{Intervals}
 
-\subsection{Extraction jobs and persistence}
+A numerical rule contains nullable lower and upper bounds with separate inclusivity flags. The application also emits a readable interval string. Examples include:
 
-\begin{description}[style=nextline]
-  \fn{EligCritExtractionService.submit()}{Creates a durable queued job, retrieves or wraps the source, and launches processing.}
-  \fn{get(job_id)}{Reads the persisted job record or raises a not-found error.}
-  \fn{resume_incomplete()}{Restarts jobs left queued or running after an application interruption.}
-  \fn{_run(job_id)}{Runs segmentation and EAV extraction, records cache hits and paths, captures errors, and always writes the final state.}
-  \fn{atomic_write_text/json/jsonl()}{Writes through a temporary file and atomic replacement so interruption cannot leave a partially written artifact.}
-  \fn{FileManager}{Provides project file and directory operations for service code.}
-\end{description}
+\begin{longtable}{p{0.33\textwidth}p{0.22\textwidth}p{0.35\textwidth}}
+\toprule
+Source & Interval & Interpretation \\
+\midrule
+\endhead
+\code{age > 18} & \code{(18, +inf)} & Open lower endpoint. \\
+\code{age <= 65} & \code{(-inf, 65]} & Closed upper endpoint. \\
+\code{aged 18 to 65} & \code{[18, 65]} & Closed bounded range in years. \\
+\code{between 18 and 65 years} & \code{[18, 65]} & Equivalent normalized range. \\
+\code{age >=18 and <=65 years} & \code{[18, 65]} & Equivalent explicit comparator form. \\
+\bottomrule
+\end{longtable}
 
-\subsection{LLM boundary and usage accounting}
+Ratios such as blood pressure \code{145/95} remain literal values rather than scalar intervals. This avoids pretending that a compound measurement is one scalar cutoff.
 
-\begin{description}[style=nextline]
-  \fn{create_llm_provider(settings, cost_monitor)}{Constructs the configured provider without exposing vendor details to the pipeline.}
-  \fn{OpenAIProvider}{Calls the OpenAI SDK and returns a provider-neutral response containing text and token usage.}
-  \fn{StructuredJsonAdapter}{Requests schema-constrained output and parses the returned JSON object.}
-  \fn{RuntimeRecordingJsonLLMProvider}{Records prompts, responses, stage metadata, and failures as recoverable JSONL run evidence.}
-  \fn{CostMonitor}{Records token counts and estimates cost using the selected model's pricing entry.}
-\end{description}
+\subsection{Illustrative structured output}
 
-\subsection{Segmentation, extraction, and EAV governance}
+For ``Blood pressure $>145/95$ on three occasions,'' the output separates:
 
-\begin{description}[style=nextline]
-  \fn{split_eligibility_criteria()}{Separates inclusion and exclusion sections and splits bullets into atomic criteria.}
-  \fn{iter_eligibility_source_items()}{Returns typed, ordered criteria with stable source provenance.}
-  \fn{eligibility_source_items_from_sections()}{Creates the same atomic records from already separated sections.}
-  \fn{process_trial()}{Creates the eligibility breakdown CSV, using checkpoints to avoid losing completed work.}
-  \fn{load_breakdown_points()}{Validates and loads atomic points for the EAV stage.}
-  \fn{normalize_search_expansion() / retrieve_attribute_candidates()}{Normalizes LLM search terms and ranks plausible governed attributes using aliases, text overlap, and schema compatibility.}
-  \fn{validate_reasoning_selection()}{Rejects selections that violate the output schema or select an ``existing'' attribute outside the supplied candidate set.}
-  \fn{build_eva_audit_item() / extract_one_eva()}{Constructs one reviewed EAV record from a criterion and its selected mapping.}
-  \fn{extract_trial_eva()}{Coordinates extraction for every atomic criterion and returns the trial audit document.}
-  \fn{finalize_trial_attribute_id_conflicts()}{Detects incompatible new definitions that would otherwise share an attribute ID.}
-  \fn{EvaLibraryRepository}{Loads governed entities and attributes, computes revision/hash identity, takes snapshots, and applies reviewed changes with concurrency checks.}
-  \fn{review_eva_mapping() / review_new_attribute_id()}{Runs critic-style checks of semantic fit, candidate selection, and proposed identifiers.}
-  \fn{validate_mapping_review() / validate_attribute_id_review()}{Enforces review schemas, English explanations, candidate hashes, and allowed decisions.}
-  \fn{EligibilityEvaReconciliationJobStore}{Persists preview/apply reconciliation jobs and their fingerprints.}
-  \fn{migrate_eva_audit_v1/v2() / load_eva_audit()}{Upgrades historical audit documents into the current schema.}
-  \fn{write_audit_csv() / apply_audit_records_to_workbook()}{Exports terminology proposals and applies approved entity, attribute, value, and alias updates.}
-\end{description}
+\begin{itemize}
+  \item domain: \code{measurement}; entity: \code{Blood Pressure};
+  \item comparator: \code{>}; value: \code{145/95};
+  \item repetition: \code{on three occasions};
+  \item relations: \code{HAS_VALUE} and \code{HAS_MULTIPLIER};
+  \item verbatim source and stable source identifier.
+\end{itemize}
 
-\subsection{Value normalization and clinical distance}
+\section{Terminology Governance}
+
+The terminology configuration combines three legacy Modern AutoCrit maps with current additions. All legacy attribute and disease aliases are retained. Legacy entity labels are adapted into the current domains rather than treated as disease synonyms. For example, ``lab test'' maps to \code{measurement}, ``medication'' to \code{drug}, and ``diagnosis'' to \code{condition}.
+
+Oncology coverage includes common diseases, performance measures, laboratory concepts, response concepts, and biomarkers, including NSCLC, SCLC, AML, CLL, DLBCL, ECOG performance status, Karnofsky performance status, RECIST, ANC, ALT, AST, ULN, EGFR, ALK, HER2, PD-1, PD-L1, KRAS, BRAF, BRCA1, and BRCA2.
+
+Ambiguous short forms such as \code{ALL}, \code{MM}, \code{CR}, \code{PR}, \code{SD}, and \code{PD} are exact-match only. Thus an extracted entity equal to \code{ALL} can normalize to Acute Lymphoblastic Leukemia without rewriting the ordinary phrase ``all patients.''
+
+\section{Function Reference}
 
 \begin{description}[style=nextline]
-  \fn{normalize_structured_value()}{Canonicalizes categorical assertions, ranges, units, inclusivity, and criterion polarity.}
-  \fn{canonicalize_intervals()}{Sorts and merges equivalent or adjacent numeric intervals.}
-  \fn{complement_intervals() / intersect_interval_sets()}{Computes excluded complements and combined eligible regions.}
-  \fn{aggregate_numeric_constraints()}{Combines multiple criteria for one attribute into a single interval representation.}
-  \fn{validate_numerical_penalty_policy() / validate_categorical_penalty_policy()}{Reject malformed penalty policies before analysis.}
-  \fn{default_numerical_penalty()}{Builds a default tolerance-and-scale policy from target context.}
-  \fn{clinical_distance_penalty()}{Calculates the weighted penalty for an observed value relative to a numeric target.}
-  \fn{categorical_label_penalty() / categorical_unresolved_penalty()}{Scores categorical agreement or explicitly unresolved comparisons.}
-  \fn{calculate_condition_penalty_analysis()}{Evaluates all supported conditions and returns component and aggregate penalties with diagnostics.}
-  \fn{initialize_numerical_penalties()}{Uses observed/target context to initialize clinically meaningful numerical policy parameters.}
+  \fn{run_browser_app()}{Creates the threaded server, optionally opens the browser, and closes server resources on interruption.}
+  \fn{BrowserApplication.dispatch()}{Routes health, extraction submission/status, review application, and library requests.}
+  \fn{fetch_study() / eligibility_text_from_study()}{Retrieve one ClinicalTrials.gov API v2 record and its eligibility block.}
+  \fn{EavWorkflowService.submit() / get()}{Validate input, persist a queued job, start its worker, and retrieve its durable JSON state. The historical class name remains for compatibility.}
+  \fn{EavWorkflowService._eligibility_from_pdf()}{Read a complete PDF, find the actual eligibility section, remove page furniture, and stop before later numbered sections.}
+  \fn{EavWorkflowService._run()}{Coordinate segmentation, batched model calls, retries, normalization, progress, completion, and failure capture.}
+  \fn{EavWorkflowService.library()}{Load the immutable base and latest reviewed snapshot, upgrading historical EAV rows in memory.}
+  \fn{EavWorkflowService.apply_review()}{Validate complete human review and atomically write cumulative JSON/CSV snapshots.}
+  \fn{segment_criteria()}{Create inclusion/exclusion source items and stable source identifiers.}
+  \fn{extraction_prompt_for_items()}{Build the source-bounded AutoCriteria/Chia-inspired extraction instruction.}
+  \fn{deterministic_criterion()}{Parse literal comparison and range syntax, separate semantic constructs, normalize the entity, infer a domain, and derive relation labels.}
+  \fn{canonical_term()}{Apply exact and phrase-safe aliases while protecting ambiguous abbreviations.}
+  \fn{infer_domain()}{Use governed domain aliases and deterministic clinical cues when a valid model domain is unavailable.}
+  \fn{interval_notation()}{Serialize open, closed, bounded, and unbounded numerical constraints.}
+  \fn{semantic_relations()}{Derive compact Chia-style relationship labels from the structured fields.}
+  \fn{normalize_rows()}{Reconcile model rows with authoritative sources and produce final review rows.}
+  \fn{StructuredJsonAdapter.generate_json()}{Request schema-constrained model output and parse a JSON object.}
+  \fn{OpenAIProvider.generate()}{Call the Responses API with retry/backoff and token recording.}
+  \fn{atomic_write_json()}{Write through a temporary file and atomic replacement.}
 \end{description}
 
-\section{Meaning of Application Outputs}
+\section{Outputs and Their Meaning}
 
-\subsection{Job output}
+\subsection{Job record}
+
+Each submission creates \code{runtime/criteria/jobs/<job_id>.json}. It contains the job and trial identifiers, input mode, timestamps, status, stage, progress percentage, user-facing message, error when present, extracted rows after completion, and an ordered progress-event log.
 
 \begin{longtable}{p{0.22\textwidth}p{0.70\textwidth}}
 \toprule
-Field or state & Meaning \\
+Status & Meaning \\
 \midrule
 \endhead
-\code{job_id} & Unique identifier for this submission and its run records. \\
-\code{trial_id} & Supplied NCT ID or generated \code{LOCAL-*} label. \\
-\code{queued} & The durable job exists and is waiting for its worker thread. \\
-\code{running} & Segmentation, LLM mapping, normalization, or review is active. \\
-\code{completed} & A breakdown CSV and EAV audit are available. It does not mean every proposed mapping has been approved for the governed library. \\
-\code{failed} & Processing stopped; the \code{error} field is the immediate cause. Prior atomic artifacts remain available for diagnosis. \\
-\code{source_path} & Registry-shaped JSON used as the immutable run input. \\
-\code{breakdown_path} & CSV of atomic criteria and intermediate breakdown fields. \\
-\code{audit_path} & Final detailed EAV audit JSON. \\
-\code{cache_hit=true} & An audit with identical text, model, and library hash was reused; no new LLM extraction was necessary. \\
+\code{queued} & The durable job record exists and its worker has not started. \\
+\code{running} & Ingestion, model extraction, or semantic normalization is active. \\
+\code{completed} & Structured rows are available for human review; they are not yet governed additions. \\
+\code{failed} & The job stopped and \code{error} contains the immediate exception. \\
 \bottomrule
 \end{longtable}
 
-\subsection{Cleaned eligibility table}
+\subsection{Review rows}
 
-\begin{longtable}{p{0.20\textwidth}p{0.72\textwidth}}
+Every row contains \code{row_id}, \code{source_id}, criterion type, domain, entity, comparator, value, unit, value kind, interval endpoints and notation, negation, temporal restriction, repetition, qualifier, logical operator, derived relations, and source. Human rejection opens these fields for correction; saving the correction marks the row accepted.
+
+\subsection{Criteria-library snapshots}
+
+Applying review creates cumulative files named \code{criteriaLibrary_YYYYMMDD_HHMMSS_microseconds.json} and \code{.csv}. JSON is authoritative and includes \code{schema_version=modern-autocrit.structured-criteria.v3}. CSV provides a convenient tabular export. Copies are written to \code{runtime/criteria/libraries/} and \code{config/}; generated config copies are ignored by Git.
+
+The application can read historical \code{eavLibrary_*.json} snapshots. It converts their comparator/value form into the richer representation in memory and does not mutate the old file. The first newly applied review carries the upgraded records into a v3 criteria snapshot.
+
+\section{Errors and Operational Interpretation}
+
+\begin{longtable}{p{0.35\textwidth}p{0.57\textwidth}}
 \toprule
-Column & Interpretation \\
+Error or symptom & Meaning and response \\
 \midrule
 \endhead
-Type & Whether the source criterion is inclusion or exclusion. \\
-Source criterion & Atomic text from the protocol; this preserves traceability to what the model interpreted. \\
-Entity & High-level governed clinical domain. \\
-Attribute & Human-readable attribute name; the smaller identifier is its stable machine key. \\
-Cleaned value & Normalized categorical assertion or numerical interval, with a unit when applicable. \\
-Confidence & Model-reported certainty, useful for triage but not a calibrated probability or proof of correctness. \\
-Review & Governance action produced by mapping review. \code{CONFIRM_EXISTING} means the criterion fits a supplied library attribute. \code{REQUIRE_NEW} means no existing candidate was adequate and a new attribute is proposed; a human should review it before library admission. Additional rejection or unresolved states, when present, mean the mapping must not be treated as verified. \\
+Missing API key & Add \code{OPENAI_API_KEY} to the repository-root \code{.env} and restart. \\
+Invalid or missing NCT ID & Check the identifier and registry availability. \\
+No eligibility criteria segmented & Headings or list formatting were not recognized; use manual text or inspect the PDF section. \\
+PDF section not recognized & The document lacks recognizable inclusion/exclusion headings or is image-only. OCR is not currently performed. \\
+Structured response failure & The provider did not return the strict schema after retries. The job is marked failed rather than returning silent partial data. \\
+Request body too large & The server accepts at most 75 MB JSON bodies and the browser limits PDF selection to 55 MB. \\
+Review cannot be applied & Every row must be accepted or corrected; entity, domain, value/bounds, comparator, and logic are validated. \\
+Port already in use & Stop the prior process or launch with a different \code{--port}. \\
+Legacy snapshot shown & No v3 snapshot exists yet; the newest historical EAV file is being upgraded in memory. Apply a reviewed run to create v3 files. \\
 \bottomrule
 \end{longtable}
 
-A \code{REQUIRE_NEW} row is not an extraction failure. It is a controlled terminology outcome: the clinical statement was extracted, but the governed library lacks a sufficiently equivalent attribute. Conversely, \code{CONFIRM_EXISTING} confirms the selected mapping under the automated reviewer; it does not replace clinical validation.
-
-\subsection{Clinical-distance output}
-
-For a scalar observation $x$, target set $T$, full-relevance tolerance $\tau$, distance scale $s>0$, and weight $w$, the numerical tool conceptually evaluates
-\[
-  p(x,T)=w\,\min\!\left(1,\frac{\max(0,d(x,T)-\tau)}{s}\right),
-\]
-where $d(x,T)$ is zero inside the target interval and otherwise is the distance to its nearest boundary. Zero means fully compatible under the policy; one times the weight is the capped maximum penalty. The JSON output includes the observed value, target, tolerance, scale, raw clinical distance, normalized penalty, weighted penalty, and diagnostic explanation. These values quantify a declared policy; they are not treatment-effect estimates or medical advice.
-
-\section{Meaning of Errors}
-
-Errors are returned in API JSON and, for background extraction, copied into the job's \code{error} field. The exception class identifies the failure category; the text identifies the violated rule.
-
-\begin{longtable}{p{0.36\textwidth}p{0.56\textwidth}}
-\toprule
-Error or message & Meaning and response \\
-\midrule
-\endhead
-Enter an NCT ID or paste eligibility criteria text & Both inputs were blank. Provide either source. \\
-Invalid NCT ID / registry 404 & The identifier format is invalid or ClinicalTrials.gov has no matching study. Check the ID. \\
-Registry request or timeout error & The v2 API was unavailable, slow, or returned an unexpected response. Retry after checking network access. \\
-Study has no eligibility criteria & The registry record exists but exposes no criteria text usable by this pipeline. Paste the text manually if available. \\
-Eligibility headings or breakdown points missing & Segmentation could not identify usable inclusion/exclusion content, or the intermediate CSV is incomplete. Inspect the source formatting and preview segmentation. \\
-JSON decode/schema error & An HTTP body or LLM response was not valid JSON of the required shape. Run records identify the failing stage. \\
-Existing Attribute selection must use one of the supplied top candidate \code{attribute_id} values & The model claimed an existing mapping but invented or reused an ID outside the candidates retrieved for that specific criterion. This is a guardrail failure, not evidence that the chosen ID is clinically valid. Rerun; if repeated, inspect the recorded prompt/candidates or improve the prompt/model. \\
-Categorical, Sex/Gender, range, interval, or unit validation error & The selected value contradicts its schema, polarity, allowed labels, bounds, or canonical unit. Correct the input/library definition or review the LLM selection. \\
-Stale library revision or SHA-256 & The governed library changed after a preview was created. Regenerate the preview before applying it; this prevents overwriting concurrent updates. \\
-Attribute ID conflict/collision & Two incompatible definitions propose the same stable identifier. Reconcile or rename before applying. \\
-Job has no completed audit result & The result endpoint was requested before completion or after failure. Poll job status and inspect \code{error}. \\
-Missing API key / authentication error & The process did not load a valid provider credential. Put the key in the documented environment file or process environment and restart the server. \\
-Rate limit, quota, or provider error & The upstream model rejected or could not complete the request. Verify quota/model access and retry; the job will be marked failed rather than silently returning partial output. \\
-Request body is too large & The browser sent more than the server's 5 MB safety limit. Reduce the pasted source. \\
-Not found & The API route, static asset, or job ID does not exist. Verify the URL or job identifier. \\
-\bottomrule
-\end{longtable}
-
-The saved source, job record, breakdown, checkpoints, and LLM JSONL records form the diagnostic trail. Retrying the same trial is expected to work when inputs are unchanged; a completed matching cache is reused. A repeated candidate-selection error indicates nondeterministic or invalid model output and should be addressed at the recorded mapping stage rather than by deleting the terminology library.
-
-\section{Persistence, Recovery, and Privacy}
-
-Runtime artifacts are organized beneath \code{runtime/eligcrit}: source documents, job records, point breakdowns, checkpoints, audits, provider records, and library snapshots. Atomic replacement protects JSON and JSONL records from partial writes. On startup, jobs left in \code{queued} or \code{running} are returned to the queue. The application binds to \code{127.0.0.1} by default, so it is locally accessible rather than a hosted multi-user system. Protocol text and model records may contain sensitive material; runtime directories and \code{.env} must remain untracked and access-controlled.
-
-\section{Key Milestones}
-
-\begin{enumerate}
-  \item Reproduced the protocol-to-criteria concept from AutoCriteria.
-  \item Removed LangChain and introduced direct, provider-neutral OpenAI SDK integration.
-  \item Refactored the monolithic workflow into backend services, schemas, processing modules, and tests.
-  \item Built a standalone application and subsequently replaced its desktop GUI with the current full-width browser application.
-  \item Added ClinicalTrials.gov v2 input, atomic segmentation, structured normalization, governed EAV retrieval, and critic/reconciliation logic.
-  \item Added recoverable jobs, atomic persistence, cache fingerprints, audit records, and clinical-distance analysis.
-\end{enumerate}
-
-\section{Future Work}
-
-\subsection{Fine-tuned embeddings for ``seemingly similar'' criteria}
-
-Generic sentence embeddings overvalue lexical overlap. For example, \code{Age >= 18} and \code{Age <= 18} share nearly every token and may receive high cosine similarity, even though their admissible populations differ sharply. A clinical-criteria representation must distinguish semantic topic similarity from constraint equivalence.
-
-The proposed model will use the current extractor as a structured supervision engine. Each criterion is represented by its clinical concept, comparator, threshold or category, unit, inclusion/exclusion polarity, and normalized interval. Development should include:
+\section{Current Limitations}
 
 \begin{itemize}
-  \item a text encoder fine-tuned with contrastive learning so criteria for the same concept remain discoverable while comparator flips, negation, exclusion polarity, and clinically material threshold changes become hard negatives;
-  \item auxiliary heads for entity/attribute classification, comparator and negation classification, typed value extraction, and relation labels such as equivalent, subset, superset, overlap, disjoint, or unknown;
-  \item interval-aware supervision in which structured population overlap supplies a target distance, rather than assuming that lexical cosine distance is clinically meaningful;
-  \item reviewed \code{CONFIRM_EXISTING} mappings as positive pairs, reconciled aliases as additional positives, and rejected or corrected mappings as high-value negatives;
-  \item retrieval followed by deterministic constraint comparison or an LLM-assisted adjudicator, with the latter required to return structured evidence rather than an unsupported scalar;
-  \item calibration and abstention so ambiguous criteria are surfaced for review instead of forced into misleading proximity.
+  \item Jobs are persisted but interrupted jobs are not automatically resumed; model prompts and raw responses are not yet written as a complete audit trail.
+  \item A failed extraction batch currently fails the job instead of preserving partial rows for continuation.
+  \item PDF extraction is text-based and does not OCR scanned protocols.
+  \item The criteria library stores reviewed trial assertions. A future governed concept layer should separate reusable concept definitions from trial-specific constraints.
+  \item Terminology normalization is a curated alias system, not an ontology service. RxNorm, LOINC, OMOP, NCIt, or ICD links are not yet assigned.
+  \item The representation is inspired by Chia but does not implement arbitrary nested annotation graphs or executable patient queries.
+  \item MetricSpace distances, calibration, and learned representations are not yet implemented. The current schema supplies their inputs.
 \end{itemize}
 
-A practical loss can combine contrastive embedding loss with operator, polarity, value, and relation losses. Evaluation must be split by clinical attribute to limit leakage and must report retrieval recall, ranking quality, relation accuracy, calibration, and threshold sensitivity. A mandatory challenge set should include \code{Age >= 18} versus \code{Age <= 18}, nearby age thresholds, unit conversions, negation, and inclusion/exclusion reversals. The model should not be released if it ranks a comparator-flipped criterion as equivalent merely because the sentences are lexically similar.
+\section{MetricSpace Roadmap}
 
-The resulting representation can support duplicate detection, terminology suggestions, and clustering. More importantly, its constraint-aware distance can propagate into trial design: quantify how far a proposed eligibility rule moves from a reference population, simulate the resulting coverage and recruitment changes, and examine whether relaxing or tightening a rule changes power, sample size, or expected generalizability.
+The structured output permits distinct comparison channels:
 
-\subsection{Broader roadmap}
+\begin{itemize}
+  \item canonical-entity agreement and governed synonymy;
+  \item domain compatibility;
+  \item exact interval relations, including equivalence, subset, superset, overlap, and disjointness;
+  \item comparator direction and endpoint sensitivity;
+  \item negation, inclusion/exclusion polarity, temporal scope, repetition, qualifier, and Boolean-structure disagreement;
+  \item embedding or LLM judgment for residual clinical semantics that cannot be resolved structurally.
+\end{itemize}
 
-Additional work includes terminology links to RxNorm and ICD-10 for automatic cleaning, a separately evaluated reviewer/critic agent, adaptive dictionary updates based on embeddings and governed human approval, multi-user hosted deployment with authentication, and downstream protocol-to-design and protocol-to-analysis agents. The long-term goal is an agentic clinical-trial system that extracts eligibility constraints, validates them, compares populations, simulates trial consequences, and produces auditable statistical design artifacts while keeping clinicians and study coordinators in the approval loop.
+Reviewed human corrections can become labeled supervision. A future agentic layer can select structural comparison for exact constraints, retrieve terminology candidates, invoke an embedding model for paraphrases, request LLM adjudication for ambiguity, reconcile disagreement, quantify uncertainty, and escalate unresolved cases.
+
+Near-term engineering priorities are batch checkpoints, raw model audit records, an independent critic, separation of canonical concepts from trial assertions, ontology identifiers, and a labeled criterion-pair evaluation set. A learned dense representation should be trained only after the structural baseline and human labels are reliable.
 
 \section{Conclusion}
 
-The current project is no longer a single-script extraction demonstration. It is a browser-delivered, layered application with registry ingestion, atomic segmentation, structured LLM extraction, EAV governance, reviewer logic, value normalization, clinical-distance analysis, persistence, recovery, and explicit audit outputs. Its next technical challenge is to turn structured criteria into a constraint-aware population representation: one that recognizes shared clinical concepts without confusing opposite or materially different eligibility rules.
+Modern AutoCrit is now a browser-delivered protocol eligibility extractor and human review tool whose output is designed for comparison rather than display alone. Its v3 schema preserves quantitative intervals, semantic constructs, Boolean relations, normalized oncology terminology, and source evidence. The application does not yet calculate the final MetricSpace distance, but it supplies a substantially more defensible representation on which that statistical and agentic work can be built.
 
 \begin{thebibliography}{9}
 \bibitem{autocriteria-repo}
 S. Datta, \emph{AutoCriteria}, GitHub repository.\\
 \url{https://github.com/surdatta/autocriteria}
-
-\bibitem{elig-crit-repo}
-Y. Zhao, \emph{EligCrit}, GitHub repository.\\
-\url{https://github.com/JackZhao1998/EligCrit}
 
 \bibitem{autocriteria-paper}
 S. Datta et al., \emph{AutoCriteria: A Generalizable Clinical Trial Eligibility Criteria Extraction System Powered by Large Language Models}, 2023.\\

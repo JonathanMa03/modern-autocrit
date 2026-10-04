@@ -1,8 +1,6 @@
 openai
 python-dotenv
 pydantic
-pandas
 requests
-openpyxl
-rapidfuzz
+pypdf
 pytest

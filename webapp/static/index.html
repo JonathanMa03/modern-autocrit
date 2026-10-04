@@ -1,34 +1,7 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Automated Eligibility Criteria Extraction</title>
-  <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
-  <header><div><p class="eyebrow">Clinical protocol intelligence</p><h1>Automated Eligibility Criteria Extraction</h1></div><span id="health">Connecting…</span></header>
-  <main>
-    <nav><button data-tab="extract" class="active">Extract</button><button data-tab="distance">Clinical distance</button><button data-tab="library">EAV library</button></nav>
-    <section id="extract" class="panel active">
-      <h2>Protocol eligibility extraction</h2>
-      <p>Atomic segmentation, governed EAV mapping, validation, reconciliation, and recoverable job records.</p>
-      <label>Trial ID <input id="trial-id" placeholder="NCT01234567"></label>
-      <label>Eligibility criteria <span class="muted">(optional when an NCT ID is supplied)</span><textarea id="criteria" rows="14" placeholder="Leave blank to retrieve the protocol from ClinicalTrials.gov, or paste criteria here.&#10;&#10;Inclusion Criteria:&#10;- Age 18 to 75 years&#10;&#10;Exclusion Criteria:&#10;- Severe renal impairment"></textarea></label>
-      <div class="actions"><button id="preview">Preview deterministic segmentation</button><button id="run" class="primary">Run AI extraction</button></div>
-      <p id="job-status" class="muted"></p>
-      <div id="cleaned-results" hidden><h3>Cleaned eligibility criteria</h3><div class="table-wrap"><table><thead><tr><th>Type</th><th>Source criterion</th><th>Entity</th><th>Attribute</th><th>Cleaned value</th><th>Confidence</th><th>Review</th></tr></thead><tbody id="cleaned-body"></tbody></table></div><details><summary>Technical job and audit JSON</summary><pre id="extract-output">Results will appear here.</pre></details></div>
-      <pre id="job-output">Results will appear here.</pre>
-    </section>
-    <section id="distance" class="panel">
-      <h2>Clinical-distance penalty</h2>
-      <p>Measure how far an observed trial value falls outside a target population. For example, compare an observed minimum age of 60 with a target age of 18. Values inside a target range have distance 0 and full relevance.</p>
-      <p class="hint"><strong>Tolerance</strong> is the clinically negligible difference. <strong>Distance scale</strong> controls how rapidly relevance falls; larger values penalize differences less severely.</p>
-      <div class="grid"><label>Observed value<input id="observed" type="number" value="60"></label><label>Target lower<input id="lower" type="number" value="18"></label><label>Target upper<input id="upper" type="number" placeholder="optional"></label><label>Tolerance<input id="tolerance" type="number" value="0"></label><label>Distance scale<input id="scale" type="number" value="20"></label></div>
-      <button id="calculate" class="primary">Calculate relevance</button><pre id="distance-output">Enter a comparison.</pre>
-    </section>
-    <section id="library" class="panel"><h2>Governed EAV terminology</h2><p>This is the controlled dictionary used to turn eligibility prose into computable Entity–Attribute–Value records. Extraction selects an existing Attribute when possible; unmatched concepts are proposed for review instead of silently changing this library.</p><p class="hint">This view is currently read-only. Search by clinical concept, Entity, or Attribute ID.</p><label>Search library<input id="library-search" placeholder="age, renal function, biomarker…"></label><p id="library-summary">Loading…</p><div id="library-list"></div></section>
-  </main>
-  <script src="/app.js"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Automated Eligibility Criteria Extraction</title><link rel="stylesheet" href="/styles.css"></head><body>
+<header><div><p class="eyebrow">Clinical protocol intelligence</p><h1>Automated Eligibility Criteria Extraction</h1></div><span id="health">Connecting…</span></header>
+<main><nav><button data-tab="extract" class="active">1. Extraction / ingestion</button><button data-tab="review">2. Human review</button><button data-tab="library">3. Criteria library</button></nav>
+<section id="extract" class="panel active"><h2>Protocol ingestion</h2><div class="mode"><label><input type="radio" name="mode" value="nct" checked> ClinicalTrials.gov NCT ID</label><label><input type="radio" name="mode" value="manual"> Paste eligibility criteria</label><label><input type="radio" name="mode" value="pdf"> Upload full protocol PDF</label></div><div id="nct-fields"><label>NCT ID<input id="trial-id" placeholder="NCT00000419"></label></div><div id="manual-fields" hidden><label>Protocol eligibility criteria<textarea id="protocol-text" rows="16" placeholder="Inclusion Criteria: ...&#10;&#10;Exclusion Criteria: ..."></textarea></label></div><div id="pdf-fields" hidden><label>Full protocol PDF<input id="protocol-pdf" type="file" accept="application/pdf,.pdf"></label><p>The protocol may contain SAP, SOA, and other sections. Only recognizable eligibility-criteria sections are sent for extraction.</p></div><div class="actions"><button id="run" class="primary">Run extraction</button></div><div id="progress-panel" class="progress-panel" hidden><progress id="progress" max="100" value="0"></progress><p id="status"></p><ol id="events" class="job-log"></ol></div></section>
+<section id="review" class="panel"><h2>Human review</h2><p>Each row separates a Chia-style domain and entity from its comparison fields, semantic constructs, Boolean relation, and original evidence. Reject a row to correct any field.</p><div class="table-wrap"><table id="review-table" class="semantic-table"><thead><tr><th data-sort="criterion_type">Type</th><th data-sort="domain">Domain</th><th data-sort="entity">Entity</th><th data-sort="comparator">Comparator</th><th data-sort="value">Value</th><th data-sort="unit">Unit</th><th>Semantic constructs</th><th data-sort="source">Source</th><th>Review</th></tr></thead><tbody id="review-body"></tbody></table></div><div class="actions"><button id="accept-all">Accept all unchanged</button><button id="apply" class="primary" disabled>Apply reviewed criteria to library</button></div><p id="review-status"></p></section>
+<section id="library" class="panel"><h2>Structured criteria library</h2><p>The immutable base and reviewed trial criteria use a MetricSpace-ready representation: domain/entity, comparison fields, negation, temporal scope, repetition, qualifiers, and logic.</p><label>Search<input id="library-search" placeholder="trial, domain, entity, temporal, source…"></label><p id="library-summary"></p><div class="table-wrap"><table class="semantic-table"><thead><tr><th>Type</th><th>Domain</th><th>Entity</th><th>Comparator</th><th>Value</th><th>Unit</th><th>Semantic constructs</th><th>Source</th><th>Trial</th></tr></thead><tbody id="library-body"></tbody></table></div></section>
+</main><script src="/app.js"></script></body></html>
