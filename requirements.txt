@@ -3,4 +3,5 @@ python-dotenv
 pydantic
 requests
 pypdf
+openpyxl
 pytest

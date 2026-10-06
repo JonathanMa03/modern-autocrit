@@ -24,6 +24,7 @@ class BrowserApplication:
             rows = body.get("rows")
             if not isinstance(rows, list): raise ValueError("Review rows must be an array.")
             return 200, self.workflow.apply_review(path.rsplit("/", 1)[-1], rows)
+        if method == "POST" and path == "/api/library/reset": return 200, self.workflow.reset_library()
         if method == "GET" and path == "/api/library": return 200, self.workflow.library()
         return 404, {"error": "Not found"}
 
@@ -34,7 +35,10 @@ def _handler(application: BrowserApplication):
         def _handle(self, method: str) -> None:
             path = urlparse(self.path).path
             try:
-                if path.startswith("/api/"):
+                if method == "GET" and path == "/api/library.xlsx":
+                    filename, data = application.workflow.library_workbook()
+                    self._send_download(filename, data)
+                elif path.startswith("/api/"):
                     status, payload = application.dispatch(method, path, self._json_body() if method == "POST" else {}); self._send_json(status, payload)
                 elif method == "GET": self._send_static(path)
                 else: self._send_json(405, {"error": "Method not allowed"})
@@ -50,6 +54,14 @@ def _handler(application: BrowserApplication):
         def _send_json(self, status: int, payload: Any) -> None:
             data = json.dumps(payload, ensure_ascii=False).encode("utf-8"); self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Content-Length", str(len(data))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(data)
+        def _send_download(self, filename: str, data: bytes) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
         def _send_static(self, path: str) -> None:
             relative = "index.html" if path in {"", "/"} else path.lstrip("/"); target = (STATIC_ROOT / relative).resolve()
             if STATIC_ROOT not in target.parents or not target.is_file(): self.send_error(HTTPStatus.NOT_FOUND); return

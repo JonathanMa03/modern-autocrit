@@ -1,5 +1,8 @@
+import io
 import json
 from pathlib import Path
+
+from openpyxl import load_workbook
 
 from backend.eav_pipeline import canonical_term, deterministic_criterion, normalize_rows, segment_criteria
 from backend.services.eav_workflow import EavWorkflowService, Job
@@ -139,6 +142,49 @@ def test_review_creates_versioned_structured_json_and_csv(tmp_path: Path):
     assert saved["entries"][0]["domain"] == "measurement"
     assert saved["entries"][0]["interval"] == "(50, +inf)"
     assert (base.parent / result["csv"]).is_file()
+
+
+def test_library_excel_export_contains_base_and_reviewed_rows(tmp_path: Path):
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps({"immutable": True, "entries": [{
+        "row_id": "base", "trial_id": "BASE", "criterion_type": "inclusion",
+        "domain": "person", "entity": "Age", "comparator": ">=", "value": "18",
+        "unit": "years", "source": "Age >=18", "relations": ["HAS_VALUE"],
+    }]}), encoding="utf-8")
+    snapshot = tmp_path / "criteriaLibrary_20200101_000000_000000.json"
+    snapshot.write_text(json.dumps({"entries": [{
+        "row_id": "reviewed", "trial_id": "NCT1", "criterion_type": "exclusion",
+        "domain": "condition", "entity": "diabetes", "comparator": None,
+        "value": "present", "unit": None, "source": "Diabetes", "relations": [],
+    }]}), encoding="utf-8")
+    service = EavWorkflowService(object(), tmp_path / "runtime", base)
+    filename, data = service.library_workbook()
+    workbook = load_workbook(io.BytesIO(data))
+    sheet = workbook["Criteria Library"]
+    assert filename.startswith("criteriaLibrary_") and filename.endswith(".xlsx")
+    assert sheet.auto_filter.ref == sheet.dimensions
+    assert sheet.freeze_panes == "A2"
+    assert sheet.max_row == 3
+    assert {sheet.cell(2, 1).value, sheet.cell(3, 1).value} == {"immutable_base", "reviewed"}
+    assert "Field Guide" in workbook.sheetnames
+
+
+def test_reset_library_removes_snapshots_and_preserves_examples(tmp_path: Path):
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps({"immutable": True, "entries": [{"trial_id": "EXAMPLE"}]}), encoding="utf-8")
+    service = EavWorkflowService(object(), tmp_path / "runtime", base)
+    config_snapshot = tmp_path / "criteriaLibrary_20200101_000000_000000.json"
+    runtime_snapshot = service.libraries / "criteriaLibrary_20200101_000000_000000.csv"
+    legacy_snapshot = tmp_path / "eavLibrary_20200101_000000_000000.json"
+    unrelated = tmp_path / "keep.json"
+    for path in (config_snapshot, runtime_snapshot, legacy_snapshot, unrelated):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("{}", encoding="utf-8")
+    result = service.reset_library()
+    assert result["removed"] == 3
+    assert result["base_entries"] == 1
+    assert base.is_file() and unrelated.is_file()
+    assert not config_snapshot.exists() and not runtime_snapshot.exists() and not legacy_snapshot.exists()
 
 
 def _model_row(source, entity, domain, *, comparator=None, value="present", logic="standalone"):

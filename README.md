@@ -135,7 +135,10 @@ The API key stays on the local backend and is never entered into the browser.
    ✕ to edit it. Saving a correction counts as acceptance.
 5. After every row is reviewed, select **Apply reviewed criteria to library**.
 6. Use **Criteria library** to search the immutable examples and latest reviewed
-   trial criteria.
+   trial criteria. Select **Download Excel spreadsheet** to export the complete
+   current library for labeling or analysis. **Reset reviewed library** removes
+   generated review snapshots after confirmation and restores the display to the
+   immutable examples.
 
 ## Interface
 
@@ -180,7 +183,17 @@ Each extracted row provides:
 - Matching JSON and CSV snapshots are written under `config/` so the currently
   reviewed library is available to the application. Generated snapshots are
   ignored by Git.
+- `/api/library.xlsx`, exposed through the Criteria Library download button,
+  generates an Excel workbook containing the immutable base and current reviewed
+  rows. It includes filtering, frozen headers, source evidence, normalized fields,
+  and a separate field-guide worksheet.
+- `/api/library/reset` removes generated JSON/CSV library snapshots from runtime
+  storage and `config/`. It does not remove extraction job records, unrelated
+  files, or `config/base_criterion_library.json`.
 - `config/base_criterion_library.json` is the packaged, immutable seed library.
+  Its `EXAMPLE` rows include numerical boundaries, sex-wording equivalence,
+  ambiguous investigator discretion, temporal and repeated measurements,
+  clinical exceptions, and compound OR criteria.
 - `config/terminology_normalization.json` contains governed aliases, oncology
   terminology, exact-only abbreviations, and legacy-class-to-domain mappings.
 
@@ -206,7 +219,7 @@ main.py                               launcher
 webapp/server.py                      HTTP API and static-file server
 webapp/static/                        three-panel browser interface
 backend/eav_pipeline.py               segmentation and Chia-inspired semantic normalization
-backend/services/eav_workflow.py      jobs, retries, progress, review, JSON/CSV snapshots
+backend/services/eav_workflow.py      jobs, retries, progress, review, JSON/CSV/Excel output
 backend/services/ctgov_v2_service.py  ClinicalTrials.gov v2 retrieval
 backend/services/llm/                 OpenAI SDK boundary
 config/base_criterion_library.json    immutable packaged seed library

@@ -15,6 +15,9 @@ from typing import Any
 from uuid import uuid4
 
 from pypdf import PdfReader
+from openpyxl import Workbook
+from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.utils import get_column_letter
 
 from backend.api.app_state import AppState
 from backend.atomic_io import atomic_write_json
@@ -228,6 +231,103 @@ class EavWorkflowService:
         base["entries"] = [self._upgrade_legacy_entry(row) for row in base.get("entries", [])]
         entries = [self._upgrade_legacy_entry(row) for row in latest.get("entries", [])]
         return {"base": base, "entries": entries, "snapshot": selected.name if selected else None}
+
+    def library_workbook(self) -> tuple[str, bytes]:
+        """Return an analysis-ready Excel export of the current library."""
+        library = self.library()
+        columns = [
+            "library_source", "trial_id", "source_id", "row_id",
+            "criterion_type", "domain", "entity", "comparator", "value",
+            "unit", "value_kind", "lower_bound", "lower_inclusive",
+            "upper_bound", "upper_inclusive", "interval", "negated",
+            "temporal", "repetition", "qualifier", "logical_operator",
+            "relations", "source", "reviewed_at",
+        ]
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Criteria Library"
+        sheet.append(columns)
+        rows = [
+            ("immutable_base", row)
+            for row in library["base"].get("entries", [])
+        ] + [("reviewed", row) for row in library.get("entries", [])]
+        for origin, row in rows:
+            values = {**row, "library_source": origin}
+            values["relations"] = " | ".join(str(item) for item in row.get("relations", []))
+            sheet.append([values.get(column) for column in columns])
+
+        header_fill = PatternFill("solid", fgColor="9F1724")
+        for cell in sheet[1]:
+            cell.fill = header_fill
+            cell.font = Font(color="FFFFFF", bold=True)
+            cell.alignment = Alignment(vertical="top", wrap_text=True)
+        sheet.freeze_panes = "A2"
+        sheet.auto_filter.ref = sheet.dimensions
+        for row in sheet.iter_rows(min_row=2):
+            for cell in row:
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+        widths = {
+            "library_source": 18, "trial_id": 16, "source_id": 16,
+            "row_id": 34, "criterion_type": 14, "domain": 15,
+            "entity": 30, "comparator": 12, "value": 18, "unit": 15,
+            "value_kind": 14, "interval": 18, "temporal": 28,
+            "repetition": 25, "qualifier": 30, "logical_operator": 16,
+            "relations": 34, "source": 70, "reviewed_at": 27,
+        }
+        for index, column in enumerate(columns, start=1):
+            sheet.column_dimensions[get_column_letter(index)].width = widths.get(column, 16)
+
+        instructions = workbook.create_sheet("Field Guide")
+        instructions.append(["Field", "How to interpret it"])
+        guidance = [
+            ("library_source", "immutable_base is packaged terminology; reviewed is human-reviewed trial output."),
+            ("criterion_type", "Protocol inclusion or exclusion status; this does not reverse a comparator."),
+            ("domain", "Chia-style clinical domain assigned to the entity."),
+            ("entity", "Canonical clinical concept without threshold, unit, negation, timing, or frequency."),
+            ("comparator / value / unit", "Literal quantitative constraint, or categorical present/absent value."),
+            ("bounds / interval", "Normalized numerical endpoints used for overlap and restrictiveness comparisons."),
+            ("negated", "True only when absence of the entity is required."),
+            ("temporal / repetition / qualifier", "Clinically meaningful modifiers kept separate from the entity."),
+            ("logical_operator", "How atomic rows from the same source combine: standalone, and, or."),
+            ("source", "Verbatim evidence; use this when checking or manually labeling a row."),
+        ]
+        for item in guidance:
+            instructions.append(item)
+        for cell in instructions[1]:
+            cell.fill = header_fill
+            cell.font = Font(color="FFFFFF", bold=True)
+        instructions.freeze_panes = "A2"
+        instructions.column_dimensions["A"].width = 30
+        instructions.column_dimensions["B"].width = 100
+        for row in instructions.iter_rows():
+            for cell in row:
+                cell.alignment = Alignment(vertical="top", wrap_text=True)
+
+        output = io.BytesIO()
+        workbook.save(output)
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        return f"criteriaLibrary_{stamp}.xlsx", output.getvalue()
+
+    def reset_library(self) -> dict[str, Any]:
+        """Remove generated review snapshots while preserving the packaged base."""
+        patterns = (
+            "criteriaLibrary_*.json", "criteriaLibrary_*.csv",
+            "eavLibrary_*.json", "eavLibrary_*.csv",
+        )
+        removed: list[str] = []
+        with self._lock:
+            for directory in (self.libraries, self.config_libraries):
+                for pattern in patterns:
+                    for path in directory.glob(pattern):
+                        if path.is_file() and path.resolve() != self.base_library.resolve():
+                            path.unlink()
+                            removed.append(str(path))
+        base = json.loads(self.base_library.read_text(encoding="utf-8"))
+        return {
+            "removed": len(removed),
+            "base_entries": len(base.get("entries", [])),
+            "message": "Reviewed criteria were removed; immutable examples were preserved.",
+        }
 
     def apply_review(self, job_id: str, rows: list[dict[str, Any]]) -> dict[str, Any]:
         job = self.get(job_id)

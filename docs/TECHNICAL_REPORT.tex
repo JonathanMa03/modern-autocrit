@@ -46,7 +46,7 @@ The project began from the protocol-to-structure idea demonstrated by AutoCriter
   \item The original long script was divided into registry, LLM, workflow, normalization, persistence, HTTP, and browser modules.
   \item Desktop interfaces were replaced by a local, full-width web application.
   \item ClinicalTrials.gov API v2 and full-protocol PDF ingestion were added.
-  \item Human decisions are stored in timestamped JSON and CSV snapshots instead of silently changing the immutable packaged base.
+  \item Human decisions are stored in timestamped JSON and CSV snapshots instead of silently changing the immutable packaged base. The current library can also be downloaded as a formatted Excel workbook for labeling and analysis.
   \item The former EAV output was replaced by a Chia-inspired structured-criterion projection. Chia distinguishes domain entities, value fields, semantic constructs, and relations; Modern AutoCrit adopts the useful distinctions in a compact tabular form without claiming full annotation-graph compatibility. See \url{https://www.nature.com/articles/s41597-020-00620-0}.
   \item Explicit interval endpoints were added for MetricSpace. Equivalent range expressions can therefore share one computational representation.
 \end{itemize}
@@ -58,7 +58,7 @@ The browser contains three panels.
 \begin{description}
   \item[Extraction / ingestion.] Select an NCT identifier, paste eligibility text, or upload a complete protocol PDF. PDF ingestion searches for the actual inclusion and exclusion sections and excludes later protocol material such as the SAP and schedule of activities.
   \item[Human review.] Sort the extracted rows, accept correct rows, or reject a row to edit its domain, entity, comparison, interval endpoints, semantic constructs, and Boolean relation. A corrected row must be saved before the collection can be applied.
-  \item[Criteria library.] Search the immutable base criteria and the latest reviewed snapshot. Historical EAV snapshots are upgraded in memory for display; their original files are not rewritten.
+  \item[Criteria library.] Search the immutable examples and the latest reviewed snapshot, or download the combined current library as Excel. A confirmed reset removes generated review snapshots and returns the display to the packaged examples. Historical EAV snapshots are upgraded in memory for display; their original files are not rewritten unless the user explicitly resets the library.
 \end{description}
 
 During extraction, the progress panel reports protocol loading, the number of located source criteria, completed extraction batches, retries, semantic normalization, completion, or failure.
@@ -76,7 +76,7 @@ During extraction, the progress panel reports protocol loading, the number of lo
 \node[box,right=of server] (workflow) {Workflow service\\jobs, review, snapshots};
 \node[box,below=of workflow] (semantic) {Semantic pipeline\\segmentation, schema, intervals};
 \node[box,left=of semantic] (sources) {Inputs\\CT.gov, text, PDF};
-\node[box,right=of semantic] (storage) {Storage\\JSON, CSV, config};
+\node[box,right=of semantic] (storage) {Storage\\JSON, CSV, Excel, config};
 \draw[arrow] (browser) -- (server);
 \draw[arrow] (server) -- (workflow);
 \draw[arrow] (sources) -- (semantic);
@@ -180,6 +180,8 @@ Ambiguous short forms such as \code{ALL}, \code{MM}, \code{CR}, \code{PR}, \code
   \fn{EavWorkflowService._eligibility_from_pdf()}{Read a complete PDF, find the actual eligibility section, remove page furniture, and stop before later numbered sections.}
   \fn{EavWorkflowService._run()}{Coordinate segmentation, batched model calls, retries, normalization, progress, completion, and failure capture.}
   \fn{EavWorkflowService.library()}{Load the immutable base and latest reviewed snapshot, upgrading historical EAV rows in memory.}
+  \fn{EavWorkflowService.library\_workbook()}{Generate an on-demand Excel export with filterable criteria rows and a field guide.}
+  \fn{EavWorkflowService.reset\_library()}{Delete only generated criteria-library and historical EAV snapshot files under the governed runtime/config locations, preserving the immutable examples and unrelated files.}
   \fn{EavWorkflowService.apply_review()}{Validate complete human review and atomically write cumulative JSON/CSV snapshots.}
   \fn{segment_criteria()}{Create inclusion/exclusion source items and stable source identifiers.}
   \fn{extraction_prompt_for_items()}{Build the source-bounded AutoCriteria/Chia-inspired extraction instruction.}
@@ -219,6 +221,10 @@ Every row contains \code{row_id}, \code{source_id}, criterion type, domain, enti
 \subsection{Criteria-library snapshots}
 
 Applying review creates cumulative files named \code{criteriaLibrary_YYYYMMDD_HHMMSS_microseconds.json} and \code{.csv}. JSON is authoritative and includes \code{schema_version=modern-autocrit.structured-criteria.v3}. CSV provides a convenient tabular export. Copies are written to \code{runtime/criteria/libraries/} and \code{config/}; generated config copies are ignored by Git.
+
+The Criteria Library panel also exposes \code{/api/library.xlsx}. This endpoint generates a workbook from the immutable base plus the latest reviewed snapshot without changing either source. The main worksheet contains normalized fields, source evidence, frozen headers, and filters; a second worksheet explains the fields for human labelers.
+
+The reset endpoint requires browser confirmation and removes generated \code{criteriaLibrary_*} and historical \code{eavLibrary_*} JSON/CSV snapshots from the runtime library directory and \code{config/}. It does not remove extraction job records, unrelated files, or \code{base_criterion_library.json}. The immutable records use trial marker \code{EXAMPLE} and include deliberately difficult cases for interval boundaries, sex wording, ambiguity, temporal and repeated measurements, exceptions, and compound logic.
 
 The application can read historical \code{eavLibrary_*.json} snapshots. It converts their comparator/value form into the richer representation in memory and does not mutate the old file. The first newly applied review carries the upgraded records into a v3 criteria snapshot.
 

@@ -13,6 +13,9 @@ This changelog documents the repository from its initial scaffold through the cu
 - Added explicit open and closed interval endpoints. Equivalent forms such as `aged 18 to 65`, `between 18 and 65 years`, `18–65 years of age`, and `age >=18 and <=65 years` normalize to `[18, 65]`.
 - Added Chia-style relation labels including `HAS_VALUE`, `HAS_NEGATION`, `HAS_TEMPORAL`, `HAS_MULTIPLIER`, `HAS_QUALIFIER`, `AND`, and `OR`.
 - Added an immutable v3 base criteria library and cumulative, timestamped `criteriaLibrary_*.json` and `.csv` review snapshots under both runtime storage and `config/`.
+- Added an on-demand Excel download for the complete current criteria library, including filters, frozen headers, normalized fields, source evidence, and a field-guide worksheet for human labeling.
+- Added a confirmed **Reset reviewed library** action that deletes generated criteria-library snapshots while preserving the immutable packaged examples and unrelated files.
+- Expanded the immutable examples and renamed their trial marker from `BASE` to `EXAMPLE`; the examples now cover disjoint age thresholds, equivalent sex wording, ambiguous investigator discretion, repeated blood-pressure measurements, temporal laboratory requirements, exceptions, and compound OR criteria.
 - Added backward-compatible in-memory upgrading of historical `eavLibrary_*.json` snapshots.
 - Added complete coverage of the legacy attribute, disease, and entity maps. Entity-class aliases are adapted to current Chia domains.
 - Added common oncology terminology for diseases, performance status, laboratory concepts, response categories, and biomarkers, with exact-only protection for ambiguous abbreviations such as `ALL`, `MM`, `CR`, `PR`, `SD`, and `PD`.
