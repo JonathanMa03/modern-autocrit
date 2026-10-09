@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,10 @@ def load_manifest(path: Path) -> list[str]:
     trial_ids = []
     for item in items:
         trial_id = item if isinstance(item, str) else item.get("trial_id") if isinstance(item, dict) else None
+        if isinstance(item, dict) and not trial_id and (
+            item.get("enabled") is False or str(item.get("status") or "").upper() in {"TBD", "PLACEHOLDER"}
+        ):
+            continue
         if not trial_id:
             raise ValueError("Every manifest item requires trial_id.")
         trial_ids.append(str(trial_id).strip().upper())
@@ -35,13 +40,22 @@ def run_manifest(path: Path, *, poll_seconds: float = 1.0, retry_limit: int = 2)
         create_app_state(), runtime, root / "config" / "base_criterion_library.json"
     )
     trial_ids = load_manifest(path)
-    manifest_hash = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
-    state_path = runtime / "manifests" / f"manifest-{manifest_hash}.json"
+    manifest_payload = json.loads(path.read_text(encoding="utf-8"))
+    cohort_id = manifest_payload.get("cohort_id") if isinstance(manifest_payload, dict) else None
+    if cohort_id:
+        manifest_key = re.sub(r"[^a-zA-Z0-9._-]+", "-", str(cohort_id)).strip("-")
+        if not manifest_key:
+            raise ValueError("cohort_id must contain at least one letter or number.")
+    else:
+        manifest_key = hashlib.sha256(path.read_bytes()).hexdigest()[:16]
+    state_path = runtime / "manifests" / f"manifest-{manifest_key}.json"
     state_path.parent.mkdir(parents=True, exist_ok=True)
     if state_path.is_file():
         state = json.loads(state_path.read_text(encoding="utf-8"))
     else:
-        state = {"manifest": str(path.resolve()), "created_at": now(), "jobs": {}}
+        state = {"manifest": str(path.resolve()), "cohort_id": cohort_id, "created_at": now(), "jobs": {}}
+    state["manifest"] = str(path.resolve())
+    state["manifest_fingerprint"] = hashlib.sha256(path.read_bytes()).hexdigest()
 
     for trial_id in trial_ids:
         record = state["jobs"].get(trial_id, {})

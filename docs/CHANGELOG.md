@@ -29,6 +29,9 @@ This changelog documents the repository from its initial scaffold through the cu
 - Added a frozen `modern-autocrit.validated-criteria.v1` JSON Schema and an on-demand validated JSON export containing only ready reviewed criteria.
 - Added per-model-batch checkpoints, saved-job reopening in the browser, explicit job resume support, and a recoverable NCT manifest runner.
 - Added `config/trial_manifest.example.json` and regression tests for provenance, parent scope, readiness validation, and downstream export filtering.
+- Added an executable `scripts/run_trial_cohort.py` command and a versioned 100-trial manifest containing 50 oncology and 50 cardiovascular trials with ClinicalTrials.gov eligibility text.
+- Added stable cohort identifiers so manifest metadata changes preserve and skip already completed trial jobs instead of starting the cohort again.
+- Added terminal instructions for the complete cohort: run `./scripts/run_trial_cohort.py --dry-run` to validate all 100 entries without API calls, `./scripts/run_trial_cohort.py` for an interactive start or resume, and `./scripts/run_trial_cohort.py --yes` for unattended execution. The runner checkpoints completed model batches, resumes interrupted trials, retries failures, and continues to the next trial after terminal failure.
 
 ### Changed
 

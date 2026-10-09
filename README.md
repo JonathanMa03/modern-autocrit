@@ -144,8 +144,22 @@ The API key stays on the local backend and is never entered into the browser.
 
 ## Recoverable cohort extraction
 
-For a cohort of ClinicalTrials.gov records, copy
-`config/trial_manifest.example.json`, replace its NCT IDs, and run:
+The packaged research cohort contains 50 oncology and 50 cardiovascular trials.
+Validate it without making network or model calls, then start or resume it with:
+
+```bash
+./scripts/run_trial_cohort.py --dry-run
+./scripts/run_trial_cohort.py
+```
+
+Use `./scripts/run_trial_cohort.py --yes` for an unattended run. The command
+prints trial-level progress and continues past terminal failures after the
+configured retries. It incurs ClinicalTrials.gov traffic and model API cost.
+Its stable `cohort_id` preserves completed jobs when metadata is corrected or
+the manifest is otherwise revised.
+
+For a different cohort, copy `config/trial_manifest.example.json`, replace its
+NCT IDs, and run:
 
 ```bash
 python main.py --manifest path/to/trial_manifest.json

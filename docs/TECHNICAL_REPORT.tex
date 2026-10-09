@@ -98,6 +98,8 @@ Component & Responsibility \\
 \code{backend/eav_pipeline.py} & Retains its historical filename but now owns the structured-criterion schema, source segmentation, terminology normalization, domain inference, interval parsing, semantic constructs, and relation labels. \\
 \code{backend/criterion_validation.py} & Checks intervals, negation, units, temporal and repetition constructs, and compound scope; derives validated-export readiness and blockers. \\
 \code{backend/batch_manifest.py} & Runs or resumes a cohort of NCT IDs while retaining manifest and per-batch checkpoint state. \\
+\code{scripts/run_trial_cohort.py} & Validates, starts, or resumes the packaged 100-slot cohort from a terminal, with a dry-run check and an optional unattended mode. \\
+\code{config/trial_cohort_100.json} & Defines a stable cohort identity and 100 active public trials: 50 oncology and 50 cardiovascular records. \\
 \code{backend/services/eav_workflow.py} & Persists jobs and checkpoints, extracts PDF sections, batches model calls, records provenance and progress, upgrades historical snapshots, validates review decisions, and writes criteria-library and validated downstream exports. \\
 \code{backend/schemas/validated_criteria_v1.schema.json} & Freezes the downstream criterion handoff contract. \\
 \code{config/terminology_normalization.json} & Governs clinical aliases, exact-only ambiguous abbreviations, and mappings from legacy entity classes to Chia-style domains. \\
@@ -267,6 +269,23 @@ Legacy snapshot shown & No v4 snapshot exists yet; the newest historical file is
   \item The representation is inspired by Chia but does not implement arbitrary nested annotation graphs or executable patient queries.
   \item Cross-trial distances, calibration, and learned representations are outside this extractor. The validated schema can supply their inputs.
 \end{itemize}
+
+\section{Packaged 100-Trial Cohort Workflow}
+
+The repository includes a terminal workflow for producing a research dataset without using the browser to start each extraction. The manifest \code{config/trial_cohort_100.json} has exactly 100 numbered, active slots. Slots 1--50 contain oncology NCT identifiers selected from public ClinicalTrials.gov interventional records with reported eligibility text. They span solid tumors and hematologic malignancies, multiple intervention classes, and several trial phases. Slots 51--100 contain cardiovascular trials spanning heart failure and cardiomyopathy, atrial fibrillation, coronary and valvular disease, hypertension and pulmonary hypertension, stroke, thrombosis, peripheral arterial disease, and aortic aneurysm. This deliberate breadth supports within-area and cross-area comparisons without limiting the corpus to one narrow disease pattern.
+
+Run the following commands from the repository root:
+
+\begin{verbatim}
+./scripts/run_trial_cohort.py --dry-run
+./scripts/run_trial_cohort.py
+\end{verbatim}
+
+The dry run checks the manifest shape, confirms 100 active identifiers, detects duplicates, and makes no registry or model calls. The normal command displays a cost warning and requests confirmation. For a supervised terminal or job runner, \code{--yes} bypasses only that confirmation; it does not bypass validation, retries, or human review.
+
+The batch service processes active NCT identifiers sequentially. Each trial still uses the same protocol retrieval, source segmentation, bounded model batches, normalization, and validation path as an interactive extraction. Completed model batches are checkpointed. The manifest state maps each NCT identifier to its persistent job and is stored under \code{runtime/criteria/manifests/}. The stable manifest \code{cohort_id}, rather than the mutable file checksum, names this state. Consequently, filling the second 50 slots later does not cause completed oncology trials to run again. A content fingerprint is retained in the state for auditability.
+
+A completed batch run is not a completed research dataset. After extraction, the operator opens saved jobs in the browser, reviews or corrects every atomic row, resolves readiness blockers, applies reviewed records to the criteria library, and freezes the validated JSON export with the cohort manifest, schema version, and source-control revision. Failed trials remain documented in manifest state and do not prevent later trials from running.
 
 \section{Optional MetricSpace Integration}
 
