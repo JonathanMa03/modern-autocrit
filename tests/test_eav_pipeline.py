@@ -2,9 +2,11 @@ import io
 import json
 from pathlib import Path
 
+import pytest
 from openpyxl import load_workbook
 
 from backend.eav_pipeline import canonical_term, deterministic_criterion, normalize_rows, segment_criteria
+from backend.criterion_validation import readiness, validate_criterion
 from backend.services.eav_workflow import EavWorkflowService, Job
 
 
@@ -45,6 +47,15 @@ def test_categorical_negation_is_explicit_and_informative():
     assert row["negated"] is True
 
 
+def test_model_categorical_value_is_preserved_when_no_comparator():
+    row = deterministic_criterion(
+        source="Both male and female participants are eligible",
+        criterion_type="inclusion", entity="sex", value="male and female",
+    )
+    assert row["entity"] == "Sex"
+    assert row["value"] == "male and female"
+
+
 def test_embedded_not_due_to_does_not_negate_entity():
     row = deterministic_criterion(
         source="Diabetes mellitus (NOT due to steroids) with vascular disease",
@@ -67,7 +78,9 @@ def test_segmentation_has_stable_source_ids_and_splits_semicolons():
     rows = segment_criteria("Exclusion Criteria:\nGPL >40; MPL >40; APL >50; dRVVT >37 sec")
     assert [row["source"] for row in rows] == ["GPL >40", "MPL >40", "APL >50", "dRVVT >37 sec"]
     assert all(row["criterion_type"] == "exclusion" for row in rows)
-    assert all(row["source_id"] == "source-0001" for row in rows)
+    assert len({row["source_id"] for row in rows}) == 1
+    assert rows[0]["source_id"].startswith("statement-")
+    assert rows == segment_criteria("Exclusion Criteria:\nGPL >40; MPL >40; APL >50; dRVVT >37 sec")
 
 
 def test_multiple_entities_share_source_and_retain_boolean_logic():
@@ -134,14 +147,55 @@ def test_review_creates_versioned_structured_json_and_csv(tmp_path: Path):
     service = EavWorkflowService(object(), tmp_path / "runtime", base)
     row = normalize_rows({"rows": [_model_row("GPL>50", "GPL", "measurement", comparator=">", value="50")]})[0]
     job = Job(job_id="job", trial_id="NCT1", input_mode="manual", status="completed", rows=[row])
+    job.protocol_id = "NCT1"
+    job.source_version = "v1"
+    job.source_retrieved_at = "2026-01-01T00:00:00+00:00"
+    job.protocol_hash = "sha256:test"
     service._save(job)
     result = service.apply_review("job", [{**row, "review_status": "accepted"}])
     assert result["json"].startswith("criteriaLibrary_")
     saved = json.loads((service.libraries / result["json"]).read_text())
-    assert saved["schema_version"] == "modern-autocrit.structured-criteria.v3"
+    assert saved["schema_version"] == "modern-autocrit.structured-criteria.v4"
     assert saved["entries"][0]["domain"] == "measurement"
     assert saved["entries"][0]["interval"] == "(50, +inf)"
+    assert saved["entries"][0]["human_review_status"] == "accepted"
+    assert saved["entries"][0]["export_ready"] is True
     assert (base.parent / result["csv"]).is_file()
+
+
+def test_validation_blocks_uncaptured_semantics_and_requires_review():
+    row = {
+        "protocol_id": "NCT1", "source_version": "v1",
+        "criterion_type": "exclusion", "entity": "blood pressure",
+        "source": "Blood pressure >145 mmHg twice within three months",
+        "comparator": None, "value": "present", "unit": None,
+        "negated": False, "temporal": None, "repetition": None,
+        "lower_bound": None, "lower_inclusive": None,
+        "upper_bound": None, "upper_inclusive": None,
+        "logical_operator": "standalone", "parent_atom_count": 1,
+        "human_review_status": "pending",
+    }
+    row["validation_issues"] = validate_criterion(row)
+    codes = {item["code"] for item in row["validation_issues"]}
+    assert {"COMPARISON_NOT_STRUCTURED", "TEMPORAL_UNCAPTURED"} <= codes
+    ready, blockers = readiness(row)
+    assert ready is False
+    assert "HUMAN_REVIEW_REQUIRED" in blockers
+
+
+def test_normalized_rows_have_stable_provenance_and_parent_scope():
+    source = "pregnant or breastfeeding"
+    items = segment_criteria(
+        f"Exclusion Criteria:\n- {source}", protocol_id="NCT1", source_version="2026-01-01"
+    )
+    rows = normalize_rows({"rows": [
+        _model_row(source, "pregnancy", "condition", logic="or"),
+        _model_row(source, "breastfeeding", "observation", logic="or"),
+    ]}, items, protocol_id="NCT1", source_version="2026-01-01")
+    assert len({row["parent_statement_id"] for row in rows}) == 1
+    assert [row["atom_index"] for row in rows] == [1, 2]
+    assert all(row["parent_atom_count"] == 2 for row in rows)
+    assert all(row["export_ready"] is False for row in rows)
 
 
 def test_library_excel_export_contains_base_and_reviewed_rows(tmp_path: Path):
@@ -167,6 +221,55 @@ def test_library_excel_export_contains_base_and_reviewed_rows(tmp_path: Path):
     assert sheet.max_row == 3
     assert {sheet.cell(2, 1).value, sheet.cell(3, 1).value} == {"immutable_base", "reviewed"}
     assert "Field Guide" in workbook.sheetnames
+
+
+def test_validated_export_excludes_unready_rows(tmp_path: Path):
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps({"immutable": True, "entries": []}), encoding="utf-8")
+    snapshot = tmp_path / "criteriaLibrary_20200101_000000_000000.json"
+    ready = {
+        "criterion_id": "criterion-ready", "row_id": "criterion-ready",
+        "parent_statement_id": "statement-1", "source_id": "statement-1",
+        "trial_id": "NCT1", "protocol_id": "NCT1", "source_version": "v1",
+        "source_retrieved_at": "2026-01-01T00:00:00+00:00", "protocol_hash": "sha256:test",
+        "criterion_type": "inclusion", "domain": "person", "entity": "Age",
+        "comparator": ">=", "value": "18", "unit": "years",
+        "source": "Age >=18 years", "surrounding_context": "Age >=18 years",
+        "human_review_status": "accepted", "reviewed_at": "2026-01-01T00:00:00+00:00",
+        "extraction_confidence": 0.9,
+    }
+    pending = {**ready, "criterion_id": "criterion-pending", "row_id": "criterion-pending", "human_review_status": "pending", "reviewed_at": None}
+    snapshot.write_text(json.dumps({"entries": [ready, pending]}), encoding="utf-8")
+    service = EavWorkflowService(object(), tmp_path / "runtime", base)
+    filename, data = service.validated_export()
+    payload = json.loads(data)
+    assert filename.startswith("validated_criteria_")
+    assert payload["schema_version"] == "modern-autocrit.validated-criteria.v1"
+    assert [row["criterion_id"] for row in payload["criteria"]] == ["criterion-ready"]
+    assert payload["criteria"][0]["export_ready"] is True
+    assert "metricspace_ready" not in payload["criteria"][0]
+
+
+def test_review_rejects_inconsistent_boolean_group(tmp_path: Path):
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps({"immutable": True, "entries": []}), encoding="utf-8")
+    service = EavWorkflowService(object(), tmp_path / "runtime", base)
+    source = "pregnant or breastfeeding"
+    items = segment_criteria(f"Exclusion Criteria:\n- {source}", protocol_id="NCT1", source_version="v1")
+    rows = normalize_rows({"rows": [
+        _model_row(source, "pregnancy", "condition", logic="or"),
+        _model_row(source, "breastfeeding", "observation", logic="or"),
+    ]}, items, protocol_id="NCT1", source_version="v1", source_retrieved_at="2026-01-01T00:00:00+00:00")
+    job = Job(
+        job_id="job", trial_id="NCT1", input_mode="manual", status="completed",
+        rows=rows, protocol_id="NCT1", source_version="v1",
+        source_retrieved_at="2026-01-01T00:00:00+00:00", protocol_hash="sha256:test",
+    )
+    service._save(job)
+    reviewed = [{**row, "review_status": "accepted"} for row in rows]
+    reviewed[1]["logical_operator"] = "and"
+    with pytest.raises(ValueError, match="consistent AND or OR"):
+        service.apply_review("job", reviewed)
 
 
 def test_reset_library_removes_snapshots_and_preserves_examples(tmp_path: Path):

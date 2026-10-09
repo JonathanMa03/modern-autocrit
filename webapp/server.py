@@ -17,9 +17,12 @@ class BrowserApplication:
         self.workflow = EavWorkflowService(create_app_state(), PROJECT_ROOT / "runtime" / "criteria", PROJECT_ROOT / "config" / "base_criterion_library.json")
     def dispatch(self, method: str, path: str, body: dict[str, Any]) -> tuple[int, Any]:
         if method == "GET" and path == "/api/health": return 200, {"status": "ok"}
+        if method == "GET" and path == "/api/extractions": return 200, {"jobs": self.workflow.list_jobs()}
         if method == "POST" and path == "/api/extractions":
             return 202, self.workflow.submit(input_mode=str(body.get("input_mode") or ""), trial_id=str(body.get("trial_id") or ""), protocol_text=str(body.get("protocol_text") or ""), protocol_pdf=str(body.get("protocol_pdf") or ""))
         if method == "GET" and path.startswith("/api/extractions/"): return 200, self.workflow.get(path.rsplit("/", 1)[-1])
+        if method == "POST" and path.startswith("/api/extractions/") and path.endswith("/resume"):
+            return 202, self.workflow.resume(path.split("/")[-2])
         if method == "POST" and path.startswith("/api/reviews/"):
             rows = body.get("rows")
             if not isinstance(rows, list): raise ValueError("Review rows must be an array.")
@@ -38,6 +41,9 @@ def _handler(application: BrowserApplication):
                 if method == "GET" and path == "/api/library.xlsx":
                     filename, data = application.workflow.library_workbook()
                     self._send_download(filename, data)
+                elif method == "GET" and path == "/api/validated-export.json":
+                    filename, data = application.workflow.validated_export()
+                    self._send_download(filename, data, "application/json")
                 elif path.startswith("/api/"):
                     status, payload = application.dispatch(method, path, self._json_body() if method == "POST" else {}); self._send_json(status, payload)
                 elif method == "GET": self._send_static(path)
@@ -54,9 +60,9 @@ def _handler(application: BrowserApplication):
         def _send_json(self, status: int, payload: Any) -> None:
             data = json.dumps(payload, ensure_ascii=False).encode("utf-8"); self.send_response(status)
             self.send_header("Content-Type", "application/json; charset=utf-8"); self.send_header("Content-Length", str(len(data))); self.send_header("Cache-Control", "no-store"); self.end_headers(); self.wfile.write(data)
-        def _send_download(self, filename: str, data: bytes) -> None:
+        def _send_download(self, filename: str, data: bytes, content_type: str = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") -> None:
             self.send_response(200)
-            self.send_header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+            self.send_header("Content-Type", content_type)
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")

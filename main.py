@@ -1,6 +1,7 @@
 import argparse
 import errno
 import logging
+from pathlib import Path
 
 from webapp.server import run_browser_app
 
@@ -19,7 +20,16 @@ def main() -> None:
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--no-browser", action="store_true")
+    parser.add_argument(
+        "--manifest", type=Path,
+        help="Run or resume NCT IDs from a JSON manifest instead of starting the browser app.",
+    )
     args = parser.parse_args()
+    if args.manifest:
+        from backend.batch_manifest import run_manifest
+        result = run_manifest(args.manifest)
+        print(f"Batch state: {result['state_file']}")
+        return
     try:
         run_browser_app(args.host, args.port, not args.no_browser)
     except OSError as exc:

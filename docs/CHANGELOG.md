@@ -12,7 +12,7 @@ This changelog documents the repository from its initial scaffold through the cu
 - Added a strict, Chia-inspired structured-criterion schema with clinical domain, canonical entity, comparator, value, unit, negation, temporal scope, repetition, qualifier, Boolean logic, stable provenance, and derived semantic relations.
 - Added explicit open and closed interval endpoints. Equivalent forms such as `aged 18 to 65`, `between 18 and 65 years`, `18–65 years of age`, and `age >=18 and <=65 years` normalize to `[18, 65]`.
 - Added Chia-style relation labels including `HAS_VALUE`, `HAS_NEGATION`, `HAS_TEMPORAL`, `HAS_MULTIPLIER`, `HAS_QUALIFIER`, `AND`, and `OR`.
-- Added an immutable v3 base criteria library and cumulative, timestamped `criteriaLibrary_*.json` and `.csv` review snapshots under both runtime storage and `config/`.
+- Added an immutable structured base criteria library and cumulative, timestamped `criteriaLibrary_*.json` and `.csv` review snapshots under both runtime storage and `config/`; the current packaged schema version is v4.
 - Added an on-demand Excel download for the complete current criteria library, including filters, frozen headers, normalized fields, source evidence, and a field-guide worksheet for human labeling.
 - Added a confirmed **Reset reviewed library** action that deletes generated criteria-library snapshots while preserving the immutable packaged examples and unrelated files.
 - Expanded the immutable examples and renamed their trial marker from `BASE` to `EXAMPLE`; the examples now cover disjoint age thresholds, equivalent sex wording, ambiguous investigator discretion, repeated blood-pressure measurements, temporal laboratory requirements, exceptions, and compound OR criteria.
@@ -21,6 +21,14 @@ This changelog documents the repository from its initial scaffold through the cu
 - Added common oncology terminology for diseases, performance status, laboratory concepts, response categories, and biomarkers, with exact-only protection for ambiguous abbreviations such as `ALL`, `MM`, `CR`, `PR`, `SD`, and `PD`.
 - Added deterministic handling for escaped comparators, compound numerical values, measurement units, contextual negation, repetition, temporal phrases, semicolon-delimited cutoffs, and multiple concepts sharing a source sentence.
 - Added full-protocol PDF and structured semantic regression tests.
+- Added content-derived criterion and parent-statement identifiers, Boolean-group membership, atom ordering, parent text, and adjacent source context.
+- Added protocol identity, registry/document version, URI, retrieval timestamp, and content hash provenance.
+- Added separate model extraction confidence and human-review status fields, distinguishing accepted rows from corrected rows.
+- Added automated interval, negation, unit, temporal, repetition, and compound-scope validation with machine-readable error codes.
+- Added explicit `export_ready` and `readiness_blockers` fields; unreviewed, invalid, or provenance-incomplete criteria are withheld from downstream export.
+- Added a frozen `modern-autocrit.validated-criteria.v1` JSON Schema and an on-demand validated JSON export containing only ready reviewed criteria.
+- Added per-model-batch checkpoints, saved-job reopening in the browser, explicit job resume support, and a recoverable NCT manifest runner.
+- Added `config/trial_manifest.example.json` and regression tests for provenance, parent scope, readiness validation, and downstream export filtering.
 
 ### Changed
 
@@ -29,7 +37,7 @@ This changelog documents the repository from its initial scaffold through the cu
 - Separated comparison values from units and interval endpoints; ratios such as `145/95` remain literal compound values.
 - Reworked the extraction prompt to require atomic clinical concepts, Chia domains, source-bounded evidence, explicit semantic constructs, and AND/OR relationships.
 - Changed the human-review table so every semantic field and interval endpoint can be inspected and corrected.
-- Changed reviewed library output from `eavLibrary_*` to versioned `criteriaLibrary_*` snapshots using schema `modern-autocrit.structured-criteria.v3`.
+- Changed reviewed library output from `eavLibrary_*` to versioned `criteriaLibrary_*` snapshots; the current schema is `modern-autocrit.structured-criteria.v4`.
 - Replaced the active base EAV library with `config/base_criterion_library.json` and expanded `config/terminology_normalization.json` into a governed alias and domain configuration.
 - Updated the README and technical report to describe the current implementation rather than the retired desktop, reconciliation, caching, and clinical-distance subsystems.
 
@@ -39,13 +47,12 @@ This changelog documents the repository from its initial scaffold through the cu
 - Removed the large retired criteria-processor, workbook terminology, reconciliation, ClinicalTrials.gov parser, desktop frontend, and obsolete test subsystems.
 - Removed the mutable base EAV configuration from the active workflow. Historical reviewed EAV snapshots remain readable for migration.
 
-### Next steps sketch
+### Finalization and handoff
 
-- Add recoverable batch checkpoints, raw model-call audit records, partial-failure continuation, and cancellation.
-- Separate reusable governed clinical concepts from trial-specific reviewed assertions and attach ontology identifiers where licensing permits.
-- Build an independent critic agent for atomicity, value, negation, temporal scope, terminology reuse, and uncertainty review.
-- Implement MetricSpace baselines for exact interval relations and semantic-construct disagreement, followed by embedding and LLM adjudication for ambiguous clinical language.
-- Convert human corrections and reviewed criterion pairs into supervised data for a constraint-aware dense representation.
+- Modern AutoCrit is now intended to remain near feature freeze while it produces the reviewed oncology and cardiovascular criterion dataset for MetricSpace.
+- Remaining operational work is cohort selection, manifest extraction, human review, validation resolution, and freezing versioned MetricSpace exports.
+- Raw model-call audit records, cancellation, governed ontology identifiers, and an independent extraction critic remain optional future improvements rather than blockers for MetricSpace.
+- Pair construction, structural comparison, embedding baselines, LLM relationship judgment, fine-tuning, active learning, and relationship evaluation belong in the separate MetricSpace project.
 
 ## Validation agent and Integrity workspace
 

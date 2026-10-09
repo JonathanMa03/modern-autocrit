@@ -16,7 +16,7 @@
   "aliases": {
     "aids": "AIDS", "acquired immunodeficiency syndrome": "AIDS",
     "abi": "ABI", "ankle brachial index": "ABI", "ankle-brachial index": "ABI",
-    "age": "Age",
+    "age": "Age", "sex": "Sex", "gender": "Sex", "biological sex": "Sex",
     "absolute neutrophil count": "Absolute Neutrophil Count", "anc": "Absolute Neutrophil Count", "neutrophil count": "Absolute Neutrophil Count",
     "adequate contraception": "Contraception Requirement", "contraception requirement": "Contraception Requirement", "effective double-method contraception": "Contraception Requirement",
     "alanine aminotransferase": "Alanine Aminotransferase (ALT)", "alanine aminotransferase alt": "Alanine Aminotransferase (ALT)", "alt": "Alanine Aminotransferase (ALT)", "alt(sgpt)": "Alanine Aminotransferase (ALT)", "sgpt": "Alanine Aminotransferase (ALT)",

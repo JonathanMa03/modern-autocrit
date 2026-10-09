@@ -2,11 +2,12 @@
 
 The module name is retained for import compatibility, but output is no longer
 a flat EAV record. Each criterion separates its domain/entity, value fields,
-semantic constructs, Boolean logic, and verbatim provenance for MetricSpace.
+semantic constructs, Boolean logic, and verbatim provenance for downstream use.
 """
 from __future__ import annotations
 
 import json
+import hashlib
 import re
 from pathlib import Path
 from typing import Any
@@ -17,7 +18,7 @@ COMPARATOR = re.compile(
     r"(?P<comparator>>=|<=|>|<|=|≥|≤)\s*"
     r"(?P<value>[+-]?\d+(?:\.\d+)?(?:\s*/\s*[+-]?\d+(?:\.\d+)?)?)"
     r"(?P<unit>\s*(?:msec|ms|sec(?:ond)?s?|mmHg|mg/dL|mmol/L|µmol/L|umol/L|"
-    r"kg/m2|kg/m²|IU/L|U/L|mL/min(?:/1\.73m2)?|years?|months?|weeks?|days?|%))?", re.I,
+    r"kg/m2|kg/m²|IU/L|U/L|cells?/uL|mL/min(?:/1\.73m2)?|years?|months?|weeks?|days?|%))?", re.I,
 )
 RANGE = re.compile(
     r"(?:(?:between|from|aged?|ages?)\s*)?(?P<lower>\d+(?:\.\d+)?)\s*"
@@ -41,6 +42,7 @@ REPETITION = re.compile(
     r"(?P<label>occasions?|times?|measurements?|visits?)\b", re.I,
 )
 TEMPORAL_PATTERNS = (
+    re.compile(r"\bhistory\s+of\b", re.I),
     re.compile(r"\bwithin\s+(?:the\s+)?(?:past|previous|last)?\s*\d+\s+(?:hours?|days?|weeks?|months?|years?)(?:\s+(?:before|prior to|after)\s+[^,.;]+)?", re.I),
     re.compile(r"\b(?:for|during)\s+(?:at least|more than|less than|>|<|≥|≤)?\s*\d+\s+(?:hours?|days?|weeks?|months?|years?)\b", re.I),
     re.compile(r"\b(?:in|over)\s+(?:the\s+)?(?:past|previous|last)?\s*\d+\s+(?:hours?|days?|weeks?|months?|years?)\b", re.I),
@@ -84,9 +86,10 @@ ROW_SCHEMA: dict[str, Any] = {
             "lower_inclusive": {"type": ["boolean", "null"]},
             "upper_bound": {"type": ["number", "null"]},
             "upper_inclusive": {"type": ["boolean", "null"]},
+            "extraction_confidence": {"type": "number", "minimum": 0, "maximum": 1},
             "source": {"type": "string", "minLength": 1},
         },
-        "required": ["criterion_type", "domain", "entity", "comparator", "value", "unit", "negated", "temporal", "repetition", "qualifier", "logical_operator", "lower_bound", "lower_inclusive", "upper_bound", "upper_inclusive", "source"],
+        "required": ["criterion_type", "domain", "entity", "comparator", "value", "unit", "negated", "temporal", "repetition", "qualifier", "logical_operator", "lower_bound", "lower_inclusive", "upper_bound", "upper_inclusive", "extraction_confidence", "source"],
         "additionalProperties": False,
     }}},
     "required": ["rows"], "additionalProperties": False,
@@ -228,6 +231,9 @@ def deterministic_criterion(*, source: str, criterion_type: str, entity: str = "
     else:
         measured = measured or raw
         measured = re.sub(r"^(?:must\s+have|patients?\s+with|participants?\s+with|history\s+of|no\s+history\s+of|without|exclude(?:d)?\s+)", "", measured, flags=re.I).strip(" .,:;-")
+        proposed_value = str(value).strip() if value is not None else ""
+        if proposed_value and not final_negated:
+            final_value = proposed_value
     if final_lower is None and lower_bound is not None:
         try: final_lower = _number(str(lower_bound))
         except ValueError: pass
@@ -287,11 +293,17 @@ def extraction_prompt_for_items(items: list[dict[str, str]]) -> str:
         "For nonnumeric criteria use value present or absent. Negated means the entity itself is absent; "
         "'diabetes not due to steroids' does not negate diabetes. Capture temporal restrictions, repetition "
         "such as 'on three occasions', material qualifiers/exceptions, and Boolean logic separately. "
+        "Give extraction_confidence from 0 to 1 for faithfulness of each complete row; this is not human approval. "
         "Use null when a semantic field is not stated. Do not infer facts. INPUT:\n" + json.dumps(items, ensure_ascii=False)
     )
 
 
-def segment_criteria(text: str) -> list[dict[str, str]]:
+def _stable_id(prefix: str, *parts: Any) -> str:
+    material = "\x1f".join(str(part or "").strip() for part in parts)
+    return f"{prefix}-{hashlib.sha256(material.encode('utf-8')).hexdigest()[:16]}"
+
+
+def segment_criteria(text: str, *, protocol_id: str = "UNSPECIFIED", source_version: str = "unversioned") -> list[dict[str, Any]]:
     current = "inclusion"
     has_heading = bool(re.search(r"^\s*(?:\d+(?:\.\d+)*\s+)?(?:inclusion|exclusion)\s+criteria\s*:?.*$", str(text or ""), re.I | re.M))
     started, rows, active = not has_heading, [], None
@@ -312,19 +324,34 @@ def segment_criteria(text: str) -> list[dict[str, str]]:
             active = {"criterion_type": current, "source": line}; rows.append(active)
         elif active is not None and not re.match(r"^\d+(?:\.\d+)+\s+", line):
             active["source"] = f"{active['source']} {line}".strip()
-    atomic = []
+    atomic: list[dict[str, Any]] = []
     for source_index, row in enumerate(rows, start=1):
-        for fragment in (x.strip() for x in re.split(r"\s*;\s*", row["source"])):
-            if fragment: atomic.append({"criterion_type": row["criterion_type"], "source": fragment, "source_id": f"source-{source_index:04d}"})
+        parent = row["source"]
+        parent_id = _stable_id("statement", protocol_id, source_version, row["criterion_type"], source_index, parent)
+        fragments = [x.strip() for x in re.split(r"\s*;\s*", parent) if x.strip()]
+        previous = rows[source_index - 2]["source"] if source_index > 1 else ""
+        following = rows[source_index]["source"] if source_index < len(rows) else ""
+        context = "\n".join(part for part in (previous, parent, following) if part)
+        for fragment in fragments:
+            atomic.append({
+                "criterion_type": row["criterion_type"], "source": fragment,
+                "source_id": parent_id, "parent_statement_id": parent_id,
+                "parent_statement": parent, "parent_source_index": source_index,
+                "surrounding_context": context,
+            })
     return atomic
 
 
-def normalize_rows(payload: dict[str, Any], source_items: list[dict[str, str]] | None = None) -> list[dict[str, Any]]:
+def normalize_rows(
+    payload: dict[str, Any], source_items: list[dict[str, Any]] | None = None, *,
+    protocol_id: str = "UNSPECIFIED", source_version: str = "unversioned",
+    source_uri: str | None = None, source_retrieved_at: str | None = None,
+) -> list[dict[str, Any]]:
     proposed = payload.get("rows") or []
-    source_types: dict[str, str] = {}; source_ids: dict[str, str] = {}
+    source_types: dict[str, str] = {}; source_items_by_text: dict[str, dict[str, Any]] = {}
     if source_items is not None:
         source_types = {x["source"]: x["criterion_type"] for x in source_items}
-        source_ids = {x["source"]: x.get("source_id", "") for x in source_items}
+        source_items_by_text = {x["source"]: x for x in source_items}
         reconciled, seen = [], set()
         for row in proposed:
             source = str(row.get("source") or "").strip()
@@ -335,9 +362,14 @@ def normalize_rows(payload: dict[str, Any], source_items: list[dict[str, str]] |
     counts: dict[str, int] = {}
     for row in proposed:
         source = str(row.get("source") or "").strip(); counts[source] = counts.get(source, 0) + 1
-    rows = []
+    rows: list[dict[str, Any]] = []
+    atom_counts: dict[str, int] = {}
     for index, row in enumerate(proposed, start=1):
         source = str(row.get("source") or "").strip()
+        item = source_items_by_text.get(source, {})
+        parent_id = str(item.get("parent_statement_id") or item.get("source_id") or _stable_id("statement", protocol_id, source_version, source))
+        atom_counts[parent_id] = atom_counts.get(parent_id, 0) + 1
+        atom_index = atom_counts[parent_id]
         logic = str(row.get("logical_operator") or "standalone").casefold()
         if counts.get(source, 0) > 1 and logic == "standalone": logic = "or" if re.search(r"\bor\b", source, re.I) else "and"
         normalized = deterministic_criterion(
@@ -349,7 +381,38 @@ def normalize_rows(payload: dict[str, Any], source_items: list[dict[str, str]] |
             upper_bound=row.get("upper_bound"), upper_inclusive=row.get("upper_inclusive"),
             qualifier=row.get("qualifier"), temporal=row.get("temporal"), repetition=row.get("repetition"), logical_operator=logic,
         )
-        normalized["row_id"] = f"criterion-{index:04d}"
-        normalized["source_id"] = source_ids.get(source) or f"source-{index:04d}"
+        normalized["criterion_id"] = _stable_id("criterion", protocol_id, source_version, parent_id, atom_index)
+        normalized["row_id"] = normalized["criterion_id"]
+        normalized["source_id"] = parent_id
+        normalized["parent_statement_id"] = parent_id
+        normalized["parent_statement"] = str(item.get("parent_statement") or source)
+        normalized["atom_index"] = atom_index
+        normalized["surrounding_context"] = str(item.get("surrounding_context") or source)
+        normalized["protocol_id"] = protocol_id
+        normalized["source_version"] = source_version
+        normalized["source_uri"] = source_uri
+        normalized["source_retrieved_at"] = source_retrieved_at
+        confidence = row.get("extraction_confidence", 0.5)
+        try: normalized["extraction_confidence"] = max(0.0, min(1.0, float(confidence)))
+        except (TypeError, ValueError): normalized["extraction_confidence"] = 0.5
+        normalized["human_review_status"] = "pending"
+        normalized["reviewed_at"] = None
         rows.append(normalized)
+    parent_counts: dict[str, int] = {}
+    for row in rows:
+        parent_counts[row["parent_statement_id"]] = parent_counts.get(row["parent_statement_id"], 0) + 1
+    from backend.criterion_validation import readiness, validate_criterion
+    for row in rows:
+        row["parent_atom_count"] = parent_counts[row["parent_statement_id"]]
+        row["boolean_group_id"] = row["parent_statement_id"]
+        if row["parent_atom_count"] > 1 and row["logical_operator"] == "standalone":
+            row["logical_operator"] = "or" if re.search(r"\bor\b", row["parent_statement"], re.I) else "and"
+            row["relations"] = semantic_relations(
+                comparator=row.get("comparator") or ("interval" if row.get("interval") else None),
+                negated=bool(row.get("negated")), temporal=row.get("temporal"),
+                repetition=row.get("repetition"), qualifier=row.get("qualifier"),
+                logical_operator=row["logical_operator"],
+            )
+        row["validation_issues"] = validate_criterion(row)
+        row["export_ready"], row["readiness_blockers"] = readiness(row)
     return rows

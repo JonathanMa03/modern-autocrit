@@ -1,5 +1,5 @@
 {
-  "schema_version": "modern-autocrit.structured-criteria.v3",
+  "schema_version": "modern-autocrit.structured-criteria.v4",
   "immutable": true,
   "description": "Read-only examples covering ordinary and difficult Chia-inspired structured criteria.",
   "entries": [

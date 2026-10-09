@@ -1,7 +1,7 @@
 # Automated Eligibility Criteria Extraction
 
 A local browser application that converts protocol eligibility text into
-human-reviewed, MetricSpace-ready structured criteria.
+human-reviewed, validated structured criteria for analysis and reuse.
 
 ## Workflow
 
@@ -19,6 +19,8 @@ human-reviewed, MetricSpace-ready structured criteria.
    `criteriaLibrary_YYYYMMDD_HHMMSS_microseconds.json` and `.csv` snapshots under
    both `runtime/criteria/libraries/` and `config/`. Generated config snapshots are
    ignored by Git; the packaged base remains immutable.
+6. Download the frozen **validated JSON** export. Only human-reviewed rows
+   with complete provenance and no blocking validation errors are included.
 
 Numerical restrictions retain their literal components. For example:
 
@@ -140,6 +142,42 @@ The API key stays on the local backend and is never entered into the browser.
    generated review snapshots after confirmation and restores the display to the
    immutable examples.
 
+## Recoverable cohort extraction
+
+For a cohort of ClinicalTrials.gov records, copy
+`config/trial_manifest.example.json`, replace its NCT IDs, and run:
+
+```bash
+python main.py --manifest path/to/trial_manifest.json
+```
+
+The runner processes trials sequentially and stores manifest state under
+`runtime/criteria/manifests/`. Each completed model batch is checkpointed inside
+its job record. Re-running the same command skips completed trials and resumes
+interrupted or failed jobs from the last completed batch. After the jobs finish,
+open the browser application normally to review their criteria. Model completion
+does not make a criterion export-ready; human review is still required.
+
+## Feature-freeze and downstream handoff
+
+Modern AutoCrit's intended extraction scope is now complete. To create a
+versioned structured-criteria dataset for any downstream analysis:
+
+1. Freeze the oncology and cardiovascular NCT manifest.
+2. Run `python main.py --manifest <manifest.json>` until every trial is completed
+   or has a documented terminal failure.
+3. Start `python main.py`, open each saved completed job, and review every atom.
+4. Correct all blocking validation findings and apply each reviewed trial.
+5. Download the Excel library for cohort-level quality control and spot checks.
+6. Download the validated JSON and archive it with the manifest, Git commit,
+   schema file, and a dataset version label.
+7. Treat that frozen export—not mutable runtime files—as the downstream input.
+
+Project-specific pair construction, distance logic, embedding models, LLM
+comparison, fine-tuning, and evaluation should live in their downstream project,
+not in the general-purpose Modern AutoCrit extractor. MetricSpace is one such
+consumer, but it is not required to run or understand Modern AutoCrit.
+
 ## Interface
 
 ![Ingestion Window](docs/screenshots/ingestion.png)
@@ -161,7 +199,7 @@ Each extracted row provides:
 | `domain` | Chia-style domain: observation, condition, person, device, drug, visit, procedure, or measurement. |
 | `entity` | Canonical clinical concept without its threshold or modifier. |
 | `comparator`, `value`, `unit` | Literal quantitative or categorical constraint components. |
-| `lower_bound`, `upper_bound` | Nullable numerical endpoints for MetricSpace comparison. |
+| `lower_bound`, `upper_bound` | Nullable numerical endpoints for exact downstream comparison. |
 | `lower_inclusive`, `upper_inclusive` | Whether each endpoint is closed. |
 | `interval` | Readable representation such as `[18, 65]` or `(18, +inf)`. |
 | `negated` | Whether absence of the entity is required. |
@@ -171,6 +209,14 @@ Each extracted row provides:
 | `logical_operator` | Standalone, AND, or OR relationship for concepts from a shared source. |
 | `relations` | Derived graph-based labels such as `HAS_VALUE` and `HAS_TEMPORAL`. |
 | `source_id`, `source` | Stable provenance identifier and verbatim protocol evidence. |
+| `criterion_id`, `parent_statement_id` | Content-derived stable identifiers for the atom and its source statement. |
+| `protocol_id`, `source_version`, `source_uri` | Protocol identity, registry/document version, and retrieval location. |
+| `surrounding_context` | Parent statement and adjacent eligibility context retained for interpretation. |
+| `boolean_group_id`, `parent_atom_count`, `atom_index` | Explicit membership and order within an AND/OR statement. |
+| `extraction_confidence` | Model confidence in its extraction; never treated as human approval. |
+| `human_review_status` | `pending`, `accepted`, or `corrected`. |
+| `validation_issues` | Automated source-consistency checks with codes, fields, severity, and messages. |
+| `export_ready`, `readiness_blockers` | Validated-export flag and explicit reasons a row is withheld. |
 
 ### Files created
 
@@ -187,6 +233,10 @@ Each extracted row provides:
   generates an Excel workbook containing the immutable base and current reviewed
   rows. It includes filtering, frozen headers, source evidence, normalized fields,
   and a separate field-guide worksheet.
+- `/api/validated-export.json` writes and downloads a JSON document conforming
+  to `backend/schemas/validated_criteria_v1.schema.json`. It excludes base
+  examples, pending reviews, incomplete provenance, and structurally invalid
+  criteria.
 - `/api/library/reset` removes generated JSON/CSV library snapshots from runtime
   storage and `config/`. It does not remove extraction job records, unrelated
   files, or `config/base_criterion_library.json`.
@@ -197,15 +247,31 @@ Each extracted row provides:
 - `config/terminology_normalization.json` contains governed aliases, oncology
   terminology, exact-only abbreviations, and legacy-class-to-domain mappings.
 
-The JSON snapshot uses schema `modern-autocrit.structured-criteria.v3`.
+Reviewed library snapshots use schema `modern-autocrit.structured-criteria.v4`.
+The frozen downstream handoff uses
+`modern-autocrit.validated-criteria.v1`.
 Historical `eavLibrary_*.json` files are read through an in-memory compatibility
 upgrade and are not modified.
+
+### Automated validation
+
+Before a reviewed row can enter the validated export, Modern AutoCrit checks:
+
+- comparators, bounds, and reversed intervals;
+- negation/value consistency;
+- measurement units present in the source but absent from the structure;
+- temporal and repetition language omitted from their fields;
+- multi-atom parent statements without AND/OR scope; and
+- possible compound statements that remain unsplit.
+
+Errors block readiness. Warnings remain visible for review but do not by
+themselves block export. Human acceptance or correction is always required.
 
 ## Operational notes
 
 - The PDF reader requires selectable text and does not perform OCR.
-- A failed model batch currently fails the job; automatic checkpoint resume and
-  partial continuation remain future work.
+- A failed model batch leaves prior batches checkpointed. Manifest runs retry and
+  resume automatically; the API also exposes a resume operation for saved jobs.
 - Never commit `.env`, `runtime/`, uploaded protocols, or generated library
   snapshots.
 - If startup reports “address already in use,” stop the prior process or use a
@@ -219,10 +285,13 @@ main.py                               launcher
 webapp/server.py                      HTTP API and static-file server
 webapp/static/                        three-panel browser interface
 backend/eav_pipeline.py               segmentation and Chia-inspired semantic normalization
+backend/criterion_validation.py       validation findings and export readiness
+backend/batch_manifest.py             recoverable cohort extraction
 backend/services/eav_workflow.py      jobs, retries, progress, review, JSON/CSV/Excel output
 backend/services/ctgov_v2_service.py  ClinicalTrials.gov v2 retrieval
 backend/services/llm/                 OpenAI SDK boundary
 config/base_criterion_library.json    immutable packaged seed library
+backend/schemas/validated_criteria_v1.schema.json  frozen handoff contract
 runtime/criteria/                     ignored local jobs and reviewed snapshots
 ```
 

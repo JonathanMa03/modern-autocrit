@@ -16,11 +16,11 @@
 \definecolor{soft}{HTML}{F7E8E2}
 \hypersetup{colorlinks=true,linkcolor=primary,urlcolor=primary,citecolor=primary}
 \setlist[itemize,enumerate]{nosep,leftmargin=*}
-\newcommand{\code}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\code}[1]{\nolinkurl{#1}}
 \newcommand{\fn}[2]{\item[\code{#1}] #2}
 
 \title{\textcolor{primary}{Automated Eligibility Criteria Extraction}\\
-\large Current Technical Architecture, Semantic Outputs, and MetricSpace Foundation}
+\large Current Technical Architecture, Semantic Outputs, and Downstream Integration}
 \author{Modern AutoCrit Project}
 \date{}
 
@@ -31,11 +31,11 @@
 
 \section{Purpose and Current Scope}
 
-Modern AutoCrit is a local browser application that extracts clinical-trial eligibility criteria from a ClinicalTrials.gov record, pasted eligibility text, or an uploaded full protocol PDF. It produces human-reviewed, structured criteria intended to support the MetricSpace project: comparison of eligibility rules by clinical concept, logical meaning, quantitative constraint, and contextual modifiers.
+Modern AutoCrit is a standalone local browser application that extracts clinical-trial eligibility criteria from a ClinicalTrials.gov record, pasted eligibility text, or an uploaded full protocol PDF. It produces human-reviewed, validated structured criteria for protocol review, tabular analysis, cohort-definition work, and other downstream clinical data-science systems.
 
 The current output is deliberately richer than a flat Entity--Attribute--Value record. Each atomic criterion separates its clinical domain and entity from its comparator, value, unit, interval, negation, temporal restriction, repetition, qualifier, Boolean relationship, and verbatim source. This separation prevents phrases such as ``blood pressure $>145/95$ on three occasions'' from collapsing into one opaque entity string.
 
-The current application does \emph{not} include the retired desktop interface, the deleted clinical-distance screen, the former candidate-attribute critic/reconciliation system, automatic job resumption, or a full Chia annotation graph. Model output remains a review artifact rather than clinical ground truth.
+The current application does \emph{not} include the retired desktop interface, the deleted clinical-distance screen, the former candidate-attribute critic/reconciliation system, or a full Chia annotation graph. Model output remains a review artifact rather than clinical ground truth. Interrupted model batches are recoverable, but recovery does not replace human review.
 
 \section{Lineage and Design Changes}
 
@@ -48,7 +48,7 @@ The project began from the protocol-to-structure idea demonstrated by AutoCriter
   \item ClinicalTrials.gov API v2 and full-protocol PDF ingestion were added.
   \item Human decisions are stored in timestamped JSON and CSV snapshots instead of silently changing the immutable packaged base. The current library can also be downloaded as a formatted Excel workbook for labeling and analysis.
   \item The former EAV output was replaced by a Chia-inspired structured-criterion projection. Chia distinguishes domain entities, value fields, semantic constructs, and relations; Modern AutoCrit adopts the useful distinctions in a compact tabular form without claiming full annotation-graph compatibility. See \url{https://www.nature.com/articles/s41597-020-00620-0}.
-  \item Explicit interval endpoints were added for MetricSpace. Equivalent range expressions can therefore share one computational representation.
+  \item Explicit interval endpoints were added for exact downstream comparison. Equivalent range expressions can therefore share one computational representation.
 \end{itemize}
 
 \section{User Workflow}
@@ -58,7 +58,7 @@ The browser contains three panels.
 \begin{description}
   \item[Extraction / ingestion.] Select an NCT identifier, paste eligibility text, or upload a complete protocol PDF. PDF ingestion searches for the actual inclusion and exclusion sections and excludes later protocol material such as the SAP and schedule of activities.
   \item[Human review.] Sort the extracted rows, accept correct rows, or reject a row to edit its domain, entity, comparison, interval endpoints, semantic constructs, and Boolean relation. A corrected row must be saved before the collection can be applied.
-  \item[Criteria library.] Search the immutable examples and the latest reviewed snapshot, or download the combined current library as Excel. A confirmed reset removes generated review snapshots and returns the display to the packaged examples. Historical EAV snapshots are upgraded in memory for display; their original files are not rewritten unless the user explicitly resets the library.
+  \item[Criteria library.] Search the immutable examples and the latest reviewed snapshot, download the combined current library as Excel, or export only validated human-reviewed records under the frozen downstream JSON contract. A confirmed reset removes generated review snapshots and returns the display to the packaged examples. Historical EAV snapshots are upgraded in memory for display; their original files are not rewritten unless the user explicitly resets the library.
 \end{description}
 
 During extraction, the progress panel reports protocol loading, the number of located source criteria, completed extraction batches, retries, semantic normalization, completion, or failure.
@@ -90,13 +90,16 @@ During extraction, the progress panel reports protocol loading, the number of lo
 Component & Responsibility \\
 \midrule
 \endhead
-\code{main.py} & Parses host, port, and browser options and launches the application. \\
+\code{main.py} & Launches the browser application or runs a recoverable NCT manifest. \\
 \code{webapp/server.py} & Routes the JSON API, limits request bodies, serves static assets safely, and starts the threaded local server. \\
 \code{webapp/static/} & Implements ingestion, progress polling, sortable review, inline correction, and library search. \\
 \code{backend/services/ctgov_v2_service.py} & Validates NCT identifiers, retrieves API v2 study JSON, and returns eligibility text. \\
 \code{backend/services/llm/} & Provides the provider-neutral boundary, OpenAI Responses API calls, strict JSON parsing, retry behavior, and token accounting. \\
 \code{backend/eav_pipeline.py} & Retains its historical filename but now owns the structured-criterion schema, source segmentation, terminology normalization, domain inference, interval parsing, semantic constructs, and relation labels. \\
-\code{backend/services/eav_workflow.py} & Persists jobs, extracts PDF sections, batches model calls, records progress, upgrades historical snapshots, validates review decisions, and writes criteria-library snapshots. \\
+\code{backend/criterion_validation.py} & Checks intervals, negation, units, temporal and repetition constructs, and compound scope; derives validated-export readiness and blockers. \\
+\code{backend/batch_manifest.py} & Runs or resumes a cohort of NCT IDs while retaining manifest and per-batch checkpoint state. \\
+\code{backend/services/eav_workflow.py} & Persists jobs and checkpoints, extracts PDF sections, batches model calls, records provenance and progress, upgrades historical snapshots, validates review decisions, and writes criteria-library and validated downstream exports. \\
+\code{backend/schemas/validated_criteria_v1.schema.json} & Freezes the downstream criterion handoff contract. \\
 \code{config/terminology_normalization.json} & Governs clinical aliases, exact-only ambiguous abbreviations, and mappings from legacy entity classes to Chia-style domains. \\
 \code{config/base_criterion_library.json} & Supplies immutable structured seed examples. \\
 \code{runtime/criteria/} & Stores ignored local job records and runtime library copies. \\
@@ -108,12 +111,13 @@ Component & Responsibility \\
 \begin{enumerate}
   \item The browser posts the selected input mode and its content to \code{/api/extractions}.
   \item The workflow validates required input. NCT mode retrieves ClinicalTrials.gov; PDF mode extracts text and locates the actual eligibility section; manual mode uses the pasted text.
-  \item \code{segment_criteria()} identifies inclusion and exclusion headings, joins wrapped lines, separates numbered or bulleted criteria, splits independent semicolon-delimited cutoffs, and assigns stable source identifiers.
+  \item \code{segment_criteria()} identifies inclusion and exclusion headings, joins wrapped lines, separates numbered or bulleted criteria, splits independent semicolon-delimited cutoffs, and assigns content-derived parent-statement identifiers.
   \item Criteria are sent in bounded batches through \code{StructuredJsonAdapter} under the strict structured-criterion schema.
   \item The model separates coordinated clinical concepts and proposes domains, values, units, temporal phrases, repetition, qualifiers, negation, and AND/OR relationships.
-  \item \code{normalize_rows()} rejects invented source strings, restores authoritative inclusion/exclusion labels, adds missing source rows, applies deterministic literal parsing, normalizes terminology, and generates stable row identifiers.
+  \item \code{normalize_rows()} rejects invented source strings, restores authoritative inclusion/exclusion labels, adds missing source rows, applies deterministic literal parsing, normalizes terminology, generates stable atomic identifiers, preserves adjacent context, and records Boolean-group membership.
+  \item Automated checks attach structured findings and withhold invalid or unreviewed criteria from validated downstream export.
   \item The browser presents every row for explicit human acceptance or correction.
-  \item Applying review writes a cumulative, versioned \code{criteriaLibrary_*.json} and \code{criteriaLibrary_*.csv} to both runtime storage and \code{config/}.
+  \item Applying review writes cumulative, versioned JSON and CSV library snapshots to runtime storage and \code{config/}.
 \end{enumerate}
 
 \section{Structured Criterion Model}
@@ -177,10 +181,12 @@ Ambiguous short forms such as \code{ALL}, \code{MM}, \code{CR}, \code{PR}, \code
   \fn{BrowserApplication.dispatch()}{Routes health, extraction submission/status, review application, and library requests.}
   \fn{fetch_study() / eligibility_text_from_study()}{Retrieve one ClinicalTrials.gov API v2 record and its eligibility block.}
   \fn{EavWorkflowService.submit() / get()}{Validate input, persist a queued job, start its worker, and retrieve its durable JSON state. The historical class name remains for compatibility.}
+  \fn{EavWorkflowService.resume() / list_jobs()}{Restart an incomplete job from its last completed batch and expose saved jobs for later browser review.}
   \fn{EavWorkflowService._eligibility_from_pdf()}{Read a complete PDF, find the actual eligibility section, remove page furniture, and stop before later numbered sections.}
   \fn{EavWorkflowService._run()}{Coordinate segmentation, batched model calls, retries, normalization, progress, completion, and failure capture.}
   \fn{EavWorkflowService.library()}{Load the immutable base and latest reviewed snapshot, upgrading historical EAV rows in memory.}
   \fn{EavWorkflowService.library\_workbook()}{Generate an on-demand Excel export with filterable criteria rows and a field guide.}
+  \fn{EavWorkflowService.validated\_export()}{Write and download only human-reviewed, validation-passing criteria under the frozen downstream schema.}
   \fn{EavWorkflowService.reset\_library()}{Delete only generated criteria-library and historical EAV snapshot files under the governed runtime/config locations, preserving the immutable examples and unrelated files.}
   \fn{EavWorkflowService.apply_review()}{Validate complete human review and atomically write cumulative JSON/CSV snapshots.}
   \fn{segment_criteria()}{Create inclusion/exclusion source items and stable source identifiers.}
@@ -191,6 +197,8 @@ Ambiguous short forms such as \code{ALL}, \code{MM}, \code{CR}, \code{PR}, \code
   \fn{interval_notation()}{Serialize open, closed, bounded, and unbounded numerical constraints.}
   \fn{semantic_relations()}{Derive compact Chia-style relationship labels from the structured fields.}
   \fn{normalize_rows()}{Reconcile model rows with authoritative sources and produce final review rows.}
+  \fn{validate_criterion() / readiness()}{Produce machine-readable semantic findings and determine whether a reviewed row may enter the validated export.}
+  \fn{run_manifest()}{Process or resume an NCT cohort and persist its job mapping and retry state.}
   \fn{StructuredJsonAdapter.generate_json()}{Request schema-constrained model output and parse a JSON object.}
   \fn{OpenAIProvider.generate()}{Call the Responses API with retry/backoff and token recording.}
   \fn{atomic_write_json()}{Write through a temporary file and atomic replacement.}
@@ -200,7 +208,7 @@ Ambiguous short forms such as \code{ALL}, \code{MM}, \code{CR}, \code{PR}, \code
 
 \subsection{Job record}
 
-Each submission creates \code{runtime/criteria/jobs/<job_id>.json}. It contains the job and trial identifiers, input mode, timestamps, status, stage, progress percentage, user-facing message, error when present, extracted rows after completion, and an ordered progress-event log.
+Each submission creates \code{runtime/criteria/jobs/<job_id>.json}. It contains the job, trial, and protocol identifiers; source version, URI, retrieval time, and protocol hash; input mode; timestamps; status; stage; progress; error; source items; completed model batches; checkpoint rows; final rows; and an ordered event log.
 
 \begin{longtable}{p{0.22\textwidth}p{0.70\textwidth}}
 \toprule
@@ -216,17 +224,19 @@ Status & Meaning \\
 
 \subsection{Review rows}
 
-Every row contains \code{row_id}, \code{source_id}, criterion type, domain, entity, comparator, value, unit, value kind, interval endpoints and notation, negation, temporal restriction, repetition, qualifier, logical operator, derived relations, and source. Human rejection opens these fields for correction; saving the correction marks the row accepted.
+Every row contains stable criterion and parent-statement identifiers, protocol/source version, source and surrounding context, Boolean-group membership and atom order, criterion type, domain, entity, comparison fields, semantic constructs, model extraction confidence, validation findings, human-review status, and validated-export readiness. Human rejection opens editable semantic fields; saving distinguishes a corrected row from one accepted unchanged.
 
 \subsection{Criteria-library snapshots}
 
-Applying review creates cumulative files named \code{criteriaLibrary_YYYYMMDD_HHMMSS_microseconds.json} and \code{.csv}. JSON is authoritative and includes \code{schema_version=modern-autocrit.structured-criteria.v3}. CSV provides a convenient tabular export. Copies are written to \code{runtime/criteria/libraries/} and \code{config/}; generated config copies are ignored by Git.
+Applying review creates timestamped \code{criteriaLibrary} JSON and CSV snapshots. JSON is authoritative and uses structured-criteria schema v4; CSV provides a convenient tabular export. Copies are written to \code{runtime/criteria/libraries/} and \code{config/}; generated config copies are ignored by Git.
 
 The Criteria Library panel also exposes \code{/api/library.xlsx}. This endpoint generates a workbook from the immutable base plus the latest reviewed snapshot without changing either source. The main worksheet contains normalized fields, source evidence, frozen headers, and filters; a second worksheet explains the fields for human labelers.
 
+The \code{/api/validated-export.json} endpoint emits only rows with complete provenance, accepted or corrected human review, and no blocking validation findings. Its frozen schema identifier is \code{modern-autocrit.validated-criteria.v1}; a copy is retained under \code{runtime/criteria/exports/}.
+
 The reset endpoint requires browser confirmation and removes generated \code{criteriaLibrary_*} and historical \code{eavLibrary_*} JSON/CSV snapshots from the runtime library directory and \code{config/}. It does not remove extraction job records, unrelated files, or \code{base_criterion_library.json}. The immutable records use trial marker \code{EXAMPLE} and include deliberately difficult cases for interval boundaries, sex wording, ambiguity, temporal and repeated measurements, exceptions, and compound logic.
 
-The application can read historical \code{eavLibrary_*.json} snapshots. It converts their comparator/value form into the richer representation in memory and does not mutate the old file. The first newly applied review carries the upgraded records into a v3 criteria snapshot.
+The application can read historical \code{eavLibrary_*.json} snapshots. It converts their comparator/value form into the richer representation in memory and does not mutate the old file. The first newly applied review carries the upgraded records into a v4 criteria snapshot. Legacy records without adequate provenance remain visibly ineligible for validated export.
 
 \section{Errors and Operational Interpretation}
 
@@ -239,27 +249,26 @@ Missing API key & Add \code{OPENAI_API_KEY} to the repository-root \code{.env} a
 Invalid or missing NCT ID & Check the identifier and registry availability. \\
 No eligibility criteria segmented & Headings or list formatting were not recognized; use manual text or inspect the PDF section. \\
 PDF section not recognized & The document lacks recognizable inclusion/exclusion headings or is image-only. OCR is not currently performed. \\
-Structured response failure & The provider did not return the strict schema after retries. The job is marked failed rather than returning silent partial data. \\
+Structured response failure & The provider did not return the strict schema after retries. Completed batches remain checkpointed; resume the job or rerun its manifest. \\
 Request body too large & The server accepts at most 75 MB JSON bodies and the browser limits PDF selection to 55 MB. \\
-Review cannot be applied & Every row must be accepted or corrected; entity, domain, value/bounds, comparator, and logic are validated. \\
+Review cannot be applied & Every row must be accepted or corrected and pass the automated interval, negation, unit, temporal, repetition, and compound-scope checks. \\
 Port already in use & Stop the prior process or launch with a different \code{--port}. \\
-Legacy snapshot shown & No v3 snapshot exists yet; the newest historical EAV file is being upgraded in memory. Apply a reviewed run to create v3 files. \\
+Legacy snapshot shown & No v4 snapshot exists yet; the newest historical file is being upgraded in memory. Apply a reviewed run to create v4 files. \\
 \bottomrule
 \end{longtable}
 
 \section{Current Limitations}
 
 \begin{itemize}
-  \item Jobs are persisted but interrupted jobs are not automatically resumed; model prompts and raw responses are not yet written as a complete audit trail.
-  \item A failed extraction batch currently fails the job instead of preserving partial rows for continuation.
+  \item Jobs and completed batches are persisted and resumable, but prompts and raw model responses are not yet written as a complete audit trail.
   \item PDF extraction is text-based and does not OCR scanned protocols.
   \item The criteria library stores reviewed trial assertions. A future governed concept layer should separate reusable concept definitions from trial-specific constraints.
   \item Terminology normalization is a curated alias system, not an ontology service. RxNorm, LOINC, OMOP, NCIt, or ICD links are not yet assigned.
   \item The representation is inspired by Chia but does not implement arbitrary nested annotation graphs or executable patient queries.
-  \item MetricSpace distances, calibration, and learned representations are not yet implemented. The current schema supplies their inputs.
+  \item Cross-trial distances, calibration, and learned representations are outside this extractor. The validated schema can supply their inputs.
 \end{itemize}
 
-\section{MetricSpace Roadmap}
+\section{Optional MetricSpace Integration}
 
 The structured output permits distinct comparison channels:
 
@@ -274,11 +283,11 @@ The structured output permits distinct comparison channels:
 
 Reviewed human corrections can become labeled supervision. A future agentic layer can select structural comparison for exact constraints, retrieve terminology candidates, invoke an embedding model for paraphrases, request LLM adjudication for ambiguity, reconcile disagreement, quantify uncertainty, and escalate unresolved cases.
 
-Near-term engineering priorities are batch checkpoints, raw model audit records, an independent critic, separation of canonical concepts from trial assertions, ontology identifiers, and a labeled criterion-pair evaluation set. A learned dense representation should be trained only after the structural baseline and human labels are reliable.
+Modern AutoCrit is intentionally near feature freeze. For a MetricSpace study, remaining work is operational data production: select trial cohorts, run recoverable extraction, complete human review, resolve validation blockers, and freeze versioned validated exports. Raw model audit records, ontology identifiers, and a separate governed concept layer remain possible later improvements rather than prerequisites for that downstream project.
 
 \section{Conclusion}
 
-Modern AutoCrit is now a browser-delivered protocol eligibility extractor and human review tool whose output is designed for comparison rather than display alone. Its v3 schema preserves quantitative intervals, semantic constructs, Boolean relations, normalized oncology terminology, and source evidence. The application does not yet calculate the final MetricSpace distance, but it supplies a substantially more defensible representation on which that statistical and agentic work can be built.
+Modern AutoCrit is now a standalone browser-delivered protocol eligibility extractor and human-review tool whose output is designed for analysis and reuse rather than display alone. Its v4 library schema and frozen validated-criteria v1 handoff preserve identifiers, source versions, context, quantitative intervals, semantic constructs, Boolean scope, review state, automated validation, and readiness. Specialized comparison or representation-learning systems can consume this output without being required to understand Modern AutoCrit internals.
 
 \begin{thebibliography}{9}
 \bibitem{autocriteria-repo}

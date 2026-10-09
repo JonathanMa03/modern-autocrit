@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JonathanMa03/modern-autocrit/schemas/validated-criteria-v1.json",
+  "title": "Modern AutoCrit Validated Structured Criteria Export",
+  "type": "object",
+  "required": ["schema_version", "created_at", "criteria"],
+  "properties": {
+    "schema_version": {"const": "modern-autocrit.validated-criteria.v1"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "criteria": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "criterion_id", "source_id", "parent_statement_id", "parent_statement",
+          "boolean_group_id", "atom_index", "parent_atom_count", "trial_id",
+          "protocol_id", "source_version", "source_uri", "source_retrieved_at",
+          "protocol_hash", "criterion_type", "domain", "entity", "comparator",
+          "value", "unit", "value_kind", "lower_bound", "lower_inclusive",
+          "upper_bound", "upper_inclusive", "interval", "negated", "temporal",
+          "repetition", "qualifier", "logical_operator", "relations", "source",
+          "surrounding_context", "extraction_confidence", "human_review_status",
+          "validation_issues", "export_ready", "readiness_blockers", "reviewed_at"
+        ],
+        "properties": {
+          "criterion_id": {"type": "string", "minLength": 1},
+          "source_id": {"type": "string", "minLength": 1},
+          "parent_statement_id": {"type": "string", "minLength": 1},
+          "parent_statement": {"type": "string", "minLength": 1},
+          "boolean_group_id": {"type": "string", "minLength": 1},
+          "atom_index": {"type": "integer", "minimum": 1},
+          "parent_atom_count": {"type": "integer", "minimum": 1},
+          "trial_id": {"type": "string", "minLength": 1},
+          "protocol_id": {"type": "string", "minLength": 1},
+          "source_version": {"type": "string", "minLength": 1},
+          "source_uri": {"type": ["string", "null"]},
+          "source_retrieved_at": {"type": ["string", "null"]},
+          "protocol_hash": {"type": ["string", "null"]},
+          "criterion_type": {"enum": ["inclusion", "exclusion"]},
+          "domain": {"enum": ["observation", "condition", "person", "device", "drug", "visit", "procedure", "measurement"]},
+          "entity": {"type": "string", "minLength": 1},
+          "comparator": {"type": ["string", "null"], "enum": [">", ">=", "<", "<=", "=", null]},
+          "value": {"type": ["string", "number", "integer", "null"]},
+          "unit": {"type": ["string", "null"]},
+          "value_kind": {"enum": ["categorical", "numerical", "interval"]},
+          "lower_bound": {"type": ["number", "null"]},
+          "lower_inclusive": {"type": ["boolean", "null"]},
+          "upper_bound": {"type": ["number", "null"]},
+          "upper_inclusive": {"type": ["boolean", "null"]},
+          "interval": {"type": ["string", "null"]},
+          "negated": {"type": "boolean"},
+          "temporal": {"type": ["string", "null"]},
+          "repetition": {"type": ["string", "null"]},
+          "qualifier": {"type": ["string", "null"]},
+          "logical_operator": {"enum": ["standalone", "and", "or"]},
+          "relations": {"type": "array", "items": {"type": "string"}},
+          "source": {"type": "string", "minLength": 1},
+          "surrounding_context": {"type": "string"},
+          "extraction_confidence": {"type": "number", "minimum": 0, "maximum": 1},
+          "human_review_status": {"enum": ["pending", "accepted", "corrected"]},
+          "validation_issues": {"type": "array"},
+          "export_ready": {"type": "boolean"},
+          "readiness_blockers": {"type": "array", "items": {"type": "string"}},
+          "reviewed_at": {"type": "string", "format": "date-time"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}
