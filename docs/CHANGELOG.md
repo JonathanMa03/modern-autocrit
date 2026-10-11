@@ -32,13 +32,26 @@ This changelog documents the repository from its initial scaffold through the cu
 - Added an executable `scripts/run_trial_cohort.py` command and a versioned 100-trial manifest containing 50 oncology and 50 cardiovascular trials with ClinicalTrials.gov eligibility text.
 - Added stable cohort identifiers so manifest metadata changes preserve and skip already completed trial jobs instead of starting the cohort again.
 - Added terminal instructions for the complete cohort: run `./scripts/run_trial_cohort.py --dry-run` to validate all 100 entries without API calls, `./scripts/run_trial_cohort.py` for an interactive start or resume, and `./scripts/run_trial_cohort.py --yes` for unattended execution. The runner checkpoints completed model batches, resumes interrupted trials, retries failures, and continues to the next trial after terminal failure.
+- Added `config/trial_cohort_calibration_10.json` and the developer commands `./scripts/run_trial_cohort.py --calibration` and `python main.py --calibration`. The balanced five-oncology/five-cardiovascular subset runs without starting the web application and shares recovery state with the full cohort, so successful calibration jobs are not charged or extracted again during the 100-trial run.
+- Added optional spreadsheet-only human review for backend cohort runs. Completed jobs are exported to a timestamped root-level XLSX with source evidence, editable semantic fields, review-status dropdowns, and instructions; `--export-review` regenerates it without model calls and `--apply-review <xlsx>` validates and applies fully reviewed trials without starting the web application.
+- Added value-grounded entity resolution for compound measurements so separate thresholds remain attached to labels such as `MSDBP`, `MSSBP`, systolic blood pressure, diastolic blood pressure, neutrophil count, and platelet count.
+- Added blocking `DUPLICATE_ATOMIC_CRITERION` validation for identical structured rows from the same parent statement, plus a second duplicate check before reviewed rows can enter the criteria library.
+- Added deterministic disambiguation for repeated values in the same statement by using the proposed entity's source location; this keeps Karnofsky and Lansky scores separate even when both use a 50-percent threshold.
+- Added deterministic parsing for written comparators and number words, including `no more than`, `at least`, `greater than or equal to`, `less than`, and `four or more` constructions.
+- Added `--renormalize` to rebuild completed cohort rows from saved model checkpoints and generate a replacement review workbook without registry or model API calls.
 
 ### Changed
 
+- Increased the structured-extraction output allowance to prevent large atomic batches from being truncated into malformed JSON; resumed jobs now report their checkpointed criterion count, and the terminal cohort runner prints only status changes instead of repeating an unchanged polling message.
 - Replaced flat Entity–Attribute–Value output with MetricSpace-ready structured criteria.
 - Replaced categorical `0`/`1` values with the explicit values `absent` and `present`, while retaining negation as a separate construct.
 - Separated comparison values from units and interval endpoints; ratios such as `145/95` remain literal compound values.
 - Reworked the extraction prompt to require atomic clinical concepts, Chia domains, source-bounded evidence, explicit semantic constructs, and AND/OR relationships.
+- Tightened the extraction prompt to require each number in a multi-measurement statement to use its immediately governing measurement label rather than a shared diagnosis-level entity.
+- Made literal source constraints authoritative over model-supplied bounds. Explicit `>`, `>=`, `<`, `<=`, ranges, grade thresholds, and units now determine interval direction and endpoints even when model fields contradict them.
+- Expanded deterministic temporal parsing for registration, screening visits, and `during/following` language, and made duplicate detection insensitive to conflicting model domain or Boolean-label assignments.
+- Changed exact semantic duplicates from review blockers to deterministic collapses, preferring measurement-domain rows for explicit constraints and restoring contiguous stable atom indexes afterward.
+- Changed comparison validation to operate at parent-statement scope: a structured deterministic sibling satisfies comparison coverage for categorical atoms copied from the same source statement.
 - Changed the human-review table so every semantic field and interval endpoint can be inspected and corrected.
 - Changed reviewed library output from `eavLibrary_*` to versioned `criteriaLibrary_*` snapshots; the current schema is `modern-autocrit.structured-criteria.v4`.
 - Replaced the active base EAV library with `config/base_criterion_library.json` and expanded `config/terminology_normalization.json` into a governed alias and domain configuration.

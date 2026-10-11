@@ -1,6 +1,7 @@
 {
   "schema_version": "modern-autocrit.trial-cohort.v1",
   "cohort_id": "metricspace-100-trial-cohort",
+  "expected_trial_count": 100,
   "description": "One hundred public interventional trials for downstream eligibility-criteria research: 50 oncology trials and 50 cardiovascular trials, each selected with ClinicalTrials.gov eligibility text.",
   "selection_date": "2026-10-09",
   "trials": [

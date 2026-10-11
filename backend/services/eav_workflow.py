@@ -24,10 +24,13 @@ from jsonschema import validate as validate_json_schema
 from backend.api.app_state import AppState
 from backend.atomic_io import atomic_write_json
 from backend.eav_pipeline import ROW_SCHEMA, deterministic_criterion, extraction_prompt_for_items, interval_notation, normalize_rows, segment_criteria, semantic_relations
-from backend.criterion_validation import readiness, validate_criterion
+from backend.criterion_validation import duplicate_criterion_ids, readiness, validate_criterion
 from backend.services.ctgov_v2_service import eligibility_text_from_study, fetch_study
 from backend.services.llm.factory import create_llm_provider
 from backend.services.llm.json_adapter import StructuredJsonAdapter
+
+EXTRACTION_BATCH_SIZE = 20
+EXTRACTION_ATTEMPTS = 2
 
 
 def now() -> str:
@@ -214,17 +217,26 @@ class EavWorkflowService:
             if not source_items:
                 raise ValueError("No eligibility criteria could be segmented from the input.")
             self._event(job, "located", f"Located {len(source_items)} atomic eligibility criteria.", 30)
-            self._event(job, "extraction", f"Extracting 0 of {len(source_items)} criteria.", 35)
+            already_extracted = min(job.completed_batches * EXTRACTION_BATCH_SIZE, len(source_items))
+            self._event(
+                job, "extraction",
+                f"Resuming after {already_extracted} of {len(source_items)} source criteria."
+                if already_extracted else f"Extracting 0 of {len(source_items)} criteria.",
+                35 if not already_extracted else 40 + round(30 * already_extracted / len(source_items)),
+            )
             provider = StructuredJsonAdapter(
                 create_llm_provider(self.state.settings.llm, cost_monitor=self.state.cost_monitor),
                 model=self.state.settings.llm.model,
             )
             extracted_rows = list(job.checkpoint_rows)
-            batches = [source_items[index:index + 20] for index in range(0, len(source_items), 20)]
+            batches = [
+                source_items[index:index + EXTRACTION_BATCH_SIZE]
+                for index in range(0, len(source_items), EXTRACTION_BATCH_SIZE)
+            ]
             for batch_number, batch in enumerate(batches[job.completed_batches:], start=job.completed_batches + 1):
                 last_error: Exception | None = None
                 payload = None
-                for attempt in range(1, 3):
+                for attempt in range(1, EXTRACTION_ATTEMPTS + 1):
                     try:
                         payload = provider.generate_json(
                             extraction_prompt_for_items(batch), output_schema=ROW_SCHEMA
@@ -232,19 +244,25 @@ class EavWorkflowService:
                         break
                     except Exception as exc:
                         last_error = exc
-                        self._event(job, "retry", f"Batch {batch_number} attempt {attempt} failed; retrying.", 45)
+                        if attempt < EXTRACTION_ATTEMPTS:
+                            self._event(
+                                job, "retry",
+                                f"Batch {batch_number} attempt {attempt} failed; retrying once.",
+                                45,
+                            )
                 if payload is None:
                     raise RuntimeError(f"Structured extraction failed in batch {batch_number}: {last_error}")
                 extracted_rows.extend(payload.get("rows") or [])
                 job.checkpoint_rows = extracted_rows
                 job.completed_batches = batch_number
-                completed = min(batch_number * 20, len(source_items))
+                completed = min(batch_number * EXTRACTION_BATCH_SIZE, len(source_items))
                 self._event(job, "extraction", f"Extracted {completed} of {len(source_items)} criteria.", 40 + round(30 * completed / len(source_items)))
             self._event(job, "normalization", "Separating domains, constraints, constructs, and Boolean semantics.", 75)
             job.rows = normalize_rows(
                 {"rows": extracted_rows}, source_items,
                 protocol_id=job.protocol_id, source_version=job.source_version,
                 source_uri=job.source_uri, source_retrieved_at=job.source_retrieved_at,
+                protocol_hash=job.protocol_hash, trial_id=job.trial_id,
             )
             job.status = "completed"
             self._event(job, "completed", f"Extracted {len(job.rows)} criteria.", 100)
@@ -540,6 +558,12 @@ class EavWorkflowService:
                 )
             clean.append(reviewed)
         groups: dict[str, list[dict[str, Any]]] = {}
+        duplicate_ids = duplicate_criterion_ids(clean)
+        if duplicate_ids:
+            raise ValueError(
+                "Reviewed output contains duplicate atomic criteria: "
+                + ", ".join(sorted(duplicate_ids))
+            )
         for row in clean:
             groups.setdefault(row["parent_statement_id"], []).append(row)
         for parent_id, members in groups.items():

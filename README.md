@@ -142,7 +142,95 @@ The API key stays on the local backend and is never entered into the browser.
    generated review snapshots after confirmation and restores the display to the
    immutable examples.
 
-## Recoverable cohort extraction
+## Running backend only
+
+The cohort runner executes protocol retrieval, AI extraction, normalization,
+validation, checkpointing, and failure recovery directly in the terminal. It
+does not start the HTTP server, open a browser, or require the web interface.
+Run these commands from the repository root after configuring the environment
+and API key described above.
+
+### Ten-trial calibration run
+
+Developers should begin with the balanced calibration subset. This runs five
+oncology and five cardiovascular trials through the real extraction pipeline
+without starting the web application. Validate the manifest first, then start
+the run:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --dry-run
+./scripts/run_trial_cohort.py --calibration
+```
+
+To deliberately rerun all ten calibration trials after changing extraction or
+validation logic, use `--fresh`. The earlier job JSON files remain available,
+but the manifest is updated to point to the new jobs:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --fresh
+```
+
+If only deterministic normalization or validation logic changed, reuse the
+saved model checkpoints instead of paying for another extraction run:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --renormalize
+```
+
+This makes no ClinicalTrials.gov or model API calls. It atomically replaces the
+completed jobs' normalized rows and writes a new review workbook.
+
+For an unattended calibration run:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --yes
+```
+
+The equivalent direct developer entry point is `python main.py --calibration`.
+The calibration manifest intentionally shares the full cohort's stable
+`cohort_id`, so its ten completed jobs are reused and skipped during the later
+100-trial run. Human review can be completed either in the browser or entirely
+through the generated spreadsheet workflow below.
+
+When a terminal run finishes, it automatically writes a timestamped workbook
+such as `trial_cohort_calibration_10_human_review_YYYYMMDD_HHMMSS.xlsx` in the
+repository root. This allows human review without opening the web application.
+You can regenerate a workbook from currently completed calibration jobs without
+making model calls:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --export-review
+```
+
+In the workbook, check `source` and `surrounding_context`, edit incorrect
+semantic fields, and set every `review_status` to `accepted` or `corrected`.
+Then save and apply it through the backend:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --apply-review trial_cohort_calibration_10_human_review_YYYYMMDD_HHMMSS.xlsx
+```
+
+Only trials whose rows are all reviewed are applied. Incomplete trials remain
+untouched and are reported in the terminal.
+
+The complete calibration-only sequence is therefore:
+
+```bash
+./scripts/run_trial_cohort.py --calibration --dry-run
+./scripts/run_trial_cohort.py --calibration
+./scripts/run_trial_cohort.py --calibration --export-review
+# Edit and save the generated XLSX.
+./scripts/run_trial_cohort.py --calibration --apply-review <calibration-review.xlsx>
+```
+
+The workbook opens on **Validation Instructions**, which includes cohort-wide,
+per-trial, and per-error extraction metrics. **Human Review** is the second
+sheet. Its first two columns are the verbatim source and parent statement;
+editable semantic fields follow, then validation findings, confidence, stable
+metadata, and clickable trial links. The review sheet freezes at `C2`, keeping
+both evidence columns visible while semantic fields are reviewed.
+
+### Full 100-trial run
 
 The packaged research cohort contains 50 oncology and 50 cardiovascular trials.
 Validate it without making network or model calls, then start or resume it with:
@@ -152,11 +240,43 @@ Validate it without making network or model calls, then start or resume it with:
 ./scripts/run_trial_cohort.py
 ```
 
-Use `./scripts/run_trial_cohort.py --yes` for an unattended run. The command
-prints trial-level progress and continues past terminal failures after the
-configured retries. It incurs ClinicalTrials.gov traffic and model API cost.
-Its stable `cohort_id` preserves completed jobs when metadata is corrected or
-the manifest is otherwise revised.
+For an unattended full-cohort run:
+
+```bash
+./scripts/run_trial_cohort.py --yes
+```
+
+The full run likewise creates a root-level
+`trial_cohort_100_human_review_YYYYMMDD_HHMMSS.xlsx`. To export or apply it
+without running extraction:
+
+```bash
+./scripts/run_trial_cohort.py --export-review
+./scripts/run_trial_cohort.py --apply-review trial_cohort_100_human_review_YYYYMMDD_HHMMSS.xlsx
+```
+
+The command prints trial-level progress and continues past terminal failures
+after the configured retries. It incurs ClinicalTrials.gov traffic and model
+API cost. Interrupting the process preserves completed trial and batch
+checkpoints for the next run. Its stable `cohort_id` preserves completed jobs
+when metadata is corrected or the manifest is otherwise revised.
+
+The complete 100-trial script-only sequence is:
+
+```bash
+./scripts/run_trial_cohort.py --dry-run
+./scripts/run_trial_cohort.py
+./scripts/run_trial_cohort.py --export-review
+# Edit and save the generated XLSX.
+./scripts/run_trial_cohort.py --apply-review <full-cohort-review.xlsx>
+```
+
+Neither sequence starts the HTTP server or browser. The extraction command
+already creates a review workbook when it finishes; the explicit
+`--export-review` step is useful after a resumed run or whenever a fresh workbook
+containing all currently completed jobs is wanted.
+
+### Custom backend cohort
 
 For a different cohort, copy `config/trial_manifest.example.json`, replace its
 NCT IDs, and run:

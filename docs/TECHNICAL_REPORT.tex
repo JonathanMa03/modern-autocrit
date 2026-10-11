@@ -100,6 +100,7 @@ Component & Responsibility \\
 \code{backend/batch_manifest.py} & Runs or resumes a cohort of NCT IDs while retaining manifest and per-batch checkpoint state. \\
 \code{scripts/run_trial_cohort.py} & Validates, starts, or resumes the packaged 100-slot cohort from a terminal, with a dry-run check and an optional unattended mode. \\
 \code{config/trial_cohort_100.json} & Defines a stable cohort identity and 100 active public trials: 50 oncology and 50 cardiovascular records. \\
+\code{config/trial_cohort_calibration_10.json} & Defines a balanced five-oncology/five-cardiovascular developer subset that exercises the production pipeline without starting the web application. \\
 \code{backend/services/eav_workflow.py} & Persists jobs and checkpoints, extracts PDF sections, batches model calls, records provenance and progress, upgrades historical snapshots, validates review decisions, and writes criteria-library and validated downstream exports. \\
 \code{backend/schemas/validated_criteria_v1.schema.json} & Freezes the downstream criterion handoff contract. \\
 \code{config/terminology_normalization.json} & Governs clinical aliases, exact-only ambiguous abbreviations, and mappings from legacy entity classes to Chia-style domains. \\
@@ -277,15 +278,53 @@ The repository includes a terminal workflow for producing a research dataset wit
 Run the following commands from the repository root:
 
 \begin{verbatim}
+./scripts/run_trial_cohort.py --calibration --dry-run
+./scripts/run_trial_cohort.py --calibration
 ./scripts/run_trial_cohort.py --dry-run
 ./scripts/run_trial_cohort.py
 \end{verbatim}
 
-The dry run checks the manifest shape, confirms 100 active identifiers, detects duplicates, and makes no registry or model calls. The normal command displays a cost warning and requests confirmation. For a supervised terminal or job runner, \code{--yes} bypasses only that confirmation; it does not bypass validation, retries, or human review.
+The calibration option runs five oncology and five cardiovascular trials through the same production extraction path without launching the browser. The equivalent lower-level developer entry point is \code{python main.py --calibration}. Its manifest intentionally uses the full cohort's stable \code{cohort_id}; therefore, completed calibration jobs are recognized and skipped when the operator later runs all 100 trials. Human review may use either the browser or the spreadsheet-only path below.
 
-The batch service processes active NCT identifiers sequentially. Each trial still uses the same protocol retrieval, source segmentation, bounded model batches, normalization, and validation path as an interactive extraction. Completed model batches are checkpointed. The manifest state maps each NCT identifier to its persistent job and is stored under \code{runtime/criteria/manifests/}. The stable manifest \code{cohort_id}, rather than the mutable file checksum, names this state. Consequently, filling the second 50 slots later does not cause completed oncology trials to run again. A content fingerprint is retained in the state for auditability.
+After extraction or validation logic changes, an intentional clean calibration rerun is started with \code{./scripts/run\_trial\_cohort.py --calibration --fresh}. This creates new jobs and updates the active manifest records while retaining prior job JSON files for audit and comparison.
 
-A completed batch run is not a completed research dataset. After extraction, the operator opens saved jobs in the browser, reviews or corrects every atomic row, resolves readiness blockers, applies reviewed records to the criteria library, and freezes the validated JSON export with the cohort manifest, schema version, and source-control revision. Failed trials remain documented in manifest state and do not prevent later trials from running.
+When saved model responses remain valid and only deterministic normalization or validation changes, the following command rebuilds completed rows directly from their checkpoint payloads and creates a replacement workbook:
+\begin{verbatim}
+./scripts/run_trial_cohort.py --calibration --renormalize
+\end{verbatim}
+This path makes no registry or model API calls.
+
+The dry run checks the selected manifest shape, confirms its active identifiers, detects duplicates, and makes no registry or model calls. The normal script command displays a cost warning and requests confirmation. For a supervised terminal or job runner, \code{--yes} bypasses only that confirmation; it does not bypass validation, retries, or human review.
+
+The batch service processes active NCT identifiers sequentially. Each trial still uses the same protocol retrieval, source segmentation, bounded model batches, normalization, and validation path as an interactive extraction. Completed model batches are checkpointed. The manifest state maps each NCT identifier to its persistent job and is stored under \code{runtime/criteria/manifests/}. The stable manifest \code{cohort_id}, rather than the mutable file checksum, names this state, allowing calibration work to carry into the full run. A content fingerprint is retained in the state for auditability.
+
+A completed batch run is not a completed research dataset. The cohort script automatically writes completed jobs to a timestamped human-review XLSX in the repository root. Its first sheet, \emph{Validation Instructions}, contains review guidance plus cohort-wide, per-trial, and per-finding quality metrics. The second sheet, \emph{Human Review}, begins with verbatim source evidence and the complete parent statement, followed by editable semantic fields, automated findings, confidence, and then provenance and identifiers. Freezing at \code{C2} keeps both evidence columns visible, and protocol URLs are clickable. Reviewers mark every row \code{accepted} or \code{corrected}; corrected rows are edited directly in the sheet. The command \code{--export-review} regenerates this workbook without registry or model calls, while \code{--apply-review <xlsx>} validates and applies only trials whose rows are all reviewed. Thus, human review may be completed entirely through the terminal and spreadsheet, although the browser remains available. After applying review, the operator resolves any reported blockers and freezes the validated JSON export with the cohort manifest, schema version, and source-control revision. Failed trials remain documented in manifest state and do not prevent later trials from running.
+
+\subsection{Two Complete Script-Only Runs}
+
+The 10-trial calibration workflow is:
+
+\begin{verbatim}
+./scripts/run_trial_cohort.py --calibration --dry-run
+./scripts/run_trial_cohort.py --calibration
+./scripts/run_trial_cohort.py --calibration --export-review
+# Edit and save the generated XLSX.
+./scripts/run_trial_cohort.py --calibration \
+  --apply-review <calibration-review.xlsx>
+\end{verbatim}
+
+The full 100-trial workflow is:
+
+\begin{verbatim}
+./scripts/run_trial_cohort.py --dry-run
+./scripts/run_trial_cohort.py
+./scripts/run_trial_cohort.py --export-review
+# Edit and save the generated XLSX.
+./scripts/run_trial_cohort.py \
+  --apply-review <full-cohort-review.xlsx>
+\end{verbatim}
+
+Neither workflow starts the HTTP server or browser. Both are recoverable: rerunning extraction resumes or skips saved jobs, and review application skips incomplete trials. The extraction command automatically creates a workbook at normal completion; the explicit export command is retained so a reviewer can capture all currently completed jobs after an interruption or resumed run.
 
 \section{Optional MetricSpace Integration}
 

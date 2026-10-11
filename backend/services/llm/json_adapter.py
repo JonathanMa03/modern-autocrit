@@ -30,6 +30,11 @@ class StructuredJsonAdapter:
             prompt + schema_instruction,
             model=self.model,
             temperature=0.0,
+            # Atomic criteria can expand substantially once provenance,
+            # intervals, constructs, and Boolean scope are represented. The
+            # previous 4,096-token default truncated larger batches into
+            # malformed JSON near 16K characters.
+            max_output_tokens=16000,
         )
         return _parse_json_object(response.text)
 

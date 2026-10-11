@@ -24,10 +24,17 @@ def main() -> None:
         "--manifest", type=Path,
         help="Run or resume NCT IDs from a JSON manifest instead of starting the browser app.",
     )
+    parser.add_argument(
+        "--calibration", action="store_true",
+        help="Run the packaged 10-trial calibration subset without starting the browser app.",
+    )
     args = parser.parse_args()
-    if args.manifest:
+    if args.manifest and args.calibration:
+        parser.error("--manifest and --calibration cannot be used together.")
+    if args.manifest or args.calibration:
         from backend.batch_manifest import run_manifest
-        result = run_manifest(args.manifest)
+        manifest = args.manifest or Path(__file__).resolve().parent / "config" / "trial_cohort_calibration_10.json"
+        result = run_manifest(manifest)
         print(f"Batch state: {result['state_file']}")
         return
     try:

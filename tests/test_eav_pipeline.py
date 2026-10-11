@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from openpyxl import load_workbook
 
-from backend.eav_pipeline import canonical_term, deterministic_criterion, normalize_rows, segment_criteria
+from backend.eav_pipeline import canonical_term, deterministic_criterion, deterministic_text_constraints, normalize_rows, segment_criteria
 from backend.criterion_validation import readiness, validate_criterion
 from backend.services.eav_workflow import EavWorkflowService, Job
 
@@ -104,6 +104,149 @@ def test_entity_relative_comparator_handles_two_measurements_in_one_source():
     assert [(row["entity"], row["value"]) for row in rows] == [("GPL", "50"), ("Blood Pressure", "145/95")]
 
 
+def test_compound_measurements_are_grounded_to_nearest_labels():
+    source = "Uncontrolled hypertension (systolic BP >180 mmHg, diastolic BP >110 mmHg)"
+    rows = normalize_rows({"rows": [
+        _model_row(source, "uncontrolled hypertension", "measurement", comparator=">", value="180"),
+        _model_row(source, "uncontrolled hypertension", "measurement", comparator=">", value="110"),
+    ]}, [{"criterion_type": "exclusion", "source": source, "source_id": "source-bp"}])
+    assert [(row["entity"], row["value"]) for row in rows] == [
+        ("systolic Blood Pressure", "180"), ("diastolic Blood Pressure", "110")
+    ]
+    assert not any(
+        issue["code"] == "DUPLICATE_ATOMIC_CRITERION"
+        for row in rows for issue in row["validation_issues"]
+    )
+
+
+def test_duplicate_atomic_rows_are_collapsed_deterministically():
+    source = "Platelets >=100x10^9/L"
+    rows = normalize_rows({"rows": [
+        _model_row(source, "platelets", "measurement", comparator=">=", value="100"),
+        _model_row(source, "platelets", "condition", comparator=">=", value="100"),
+    ]}, [{"criterion_type": "inclusion", "source": source, "source_id": "source-platelets"}])
+    assert len(rows) == 1
+    assert rows[0]["domain"] == "measurement"
+
+
+def test_literal_comparator_overrides_contradictory_model_bounds():
+    row = deterministic_criterion(
+        source="Serum creatinine >3 mg/dL", criterion_type="exclusion",
+        entity="serum creatinine", comparator=">", value=3, unit="mg/dL",
+        lower_bound=None, upper_bound=3, upper_inclusive=False,
+    )
+    assert row["comparator"] == ">"
+    assert row["lower_bound"] == 3 and row["lower_inclusive"] is False
+    assert row["upper_bound"] is None and row["upper_inclusive"] is None
+    assert row["interval"] == "(3, +inf)"
+
+
+def test_repeated_values_use_entity_anchor_for_karnofsky_and_lansky():
+    source = (
+        "Karnofsky score >50% for patients >16 years of age and "
+        "Lansky >50% for patients <=16 years of age"
+    )
+    rows = normalize_rows({"rows": [
+        _model_row(source, "Karnofsky score", "measurement", comparator=">", value="50", logic="and"),
+        _model_row(source, "Lansky score", "measurement", comparator=">", value="50", logic="and"),
+    ]}, [{"criterion_type": "inclusion", "source": source, "source_id": "source-performance"}])
+    assert [(row["entity"], row["value"]) for row in rows] == [
+        ("Karnofsky Performance Status", "50"), ("lansky score", "50")
+    ]
+    assert not any(
+        issue["code"] == "DUPLICATE_ATOMIC_CRITERION"
+        for row in rows for issue in row["validation_issues"]
+    )
+
+
+def test_grade_comparison_is_parsed_without_model_help():
+    row = deterministic_criterion(
+        source="Peripheral sensory neuropathy > grade 1",
+        criterion_type="exclusion", entity="peripheral sensory neuropathy",
+    )
+    assert (row["entity"], row["comparator"], row["value"], row["unit"]) == (
+        "peripheral sensory neuropathy", ">", "1", "grade"
+    )
+
+
+@pytest.mark.parametrize("source, expected", [
+    ("Disease progressed during/following last prior treatment", "during/following last prior treatment"),
+    ("Discussed with the patient before registration in the trial", "before registration in the trial"),
+    ("Atrial fibrillation at any time, but before the screening visit", "before the screening visit"),
+])
+def test_explicit_temporal_phrases_are_deterministic(source, expected):
+    row = deterministic_criterion(
+        source=source, criterion_type="inclusion", entity="clinical event",
+    )
+    assert expected in row["temporal"]
+
+
+def test_written_comparators_are_extracted_without_model_help():
+    statins = deterministic_text_constraints(
+        "atorvastatin greater than or equal to 40 mg or rosuvastatin greater than or equal to 20 mg",
+        "inclusion",
+    )
+    assert [(row["entity"], row["comparator"], row["value"], row["unit"]) for row in statins] == [
+        ("atorvastatin", ">=", 40, "mg"), ("rosuvastatin", ">=", 20, "mg")
+    ]
+    assert {row["logical_operator"] for row in statins} == {"or"}
+    count = deterministic_text_constraints(
+        "Patients on four or more antihypertensive drugs at Visit 1.", "exclusion"
+    )
+    assert [(row["entity"], row["comparator"], row["value"]) for row in count] == [
+        ("antihypertensive drugs", ">=", 4)
+    ]
+    cycles = deterministic_text_constraints(
+        "No more than 2 cycles of prior 5-FU chemotherapy", "inclusion"
+    )
+    assert cycles[0]["entity"] == "prior 5-FU chemotherapy cycles"
+    normalized = deterministic_criterion(**{
+        key: value for key, value in cycles[0].items()
+        if key in {"source", "criterion_type", "entity", "domain", "comparator", "value", "unit", "negated", "qualifier", "temporal", "repetition", "logical_operator", "lower_bound", "lower_inclusive", "upper_bound", "upper_inclusive"}
+    })
+    assert normalized["negated"] is False
+    assert normalized["interval"] == "(-inf, 2]"
+    comma_number = deterministic_text_constraints(
+        "Absolute blast count greater than 50,000/mcl", "inclusion"
+    )
+    assert [(row["entity"], row["value"], row["unit"]) for row in comma_number] == [
+        ("Absolute blast count", 50000, "/mcl")
+    ]
+    escaped_comma = deterministic_criterion(
+        source=r"Thrombocytopenia defined as platelet count \<50,000 platelets/μL.",
+        criterion_type="exclusion", entity="platelet count", domain="measurement",
+    )
+    assert (escaped_comma["comparator"], escaped_comma["value"], escaped_comma["unit"]) == (
+        "<", "50000", "platelets/μL"
+    )
+    assert deterministic_text_constraints(
+        "No more than 2 cycles of prior 5-FU chemotherapy required. No prior radiation.",
+        "inclusion",
+    )[0]["entity"] == "prior 5-FU chemotherapy cycles"
+    assert deterministic_text_constraints(
+        "The expected failure rate is less than 1% per year.", "exclusion"
+    )[0]["entity"] == "failure rate"
+    assert deterministic_text_constraints(
+        "The above medications must be stable for at least 3 months.", "inclusion"
+    )[0]["entity"] == "medications stability duration"
+    assert deterministic_text_constraints(
+        "At least 1 of the following conditions applies: diabetes or smoking.", "inclusion"
+    )[0]["entity"] == "following conditions"
+
+
+def test_deterministic_sibling_satisfies_parent_comparison_validation():
+    source = "Severe disease expected to reduce life expectancy to less than 5 years"
+    rows = normalize_rows(
+        {"rows": [_model_row(source, "severe disease", "condition")]},
+        [{"criterion_type": "exclusion", "source": source, "source_id": "source-life"}],
+    )
+    assert any(row["comparator"] == "<" and row["value"] == "5" for row in rows)
+    assert not any(
+        issue["code"] == "COMPARISON_NOT_STRUCTURED"
+        for row in rows for issue in row["validation_issues"]
+    )
+
+
 def test_age_range_phrasings_normalize_to_same_closed_interval():
     sources = ["aged 18 to 65", "between 18 and 65 years", "18–65 years of age", "age ≥18 and ≤65 years"]
     rows = [deterministic_criterion(source=source, criterion_type="inclusion", entity="Age") for source in sources]
@@ -115,6 +258,62 @@ def test_age_range_phrasings_normalize_to_same_closed_interval():
         assert row["lower_inclusive"] is True and row["upper_inclusive"] is True
         assert row["interval"] == "[18, 65]"
         assert "HAS_VALUE" in row["relations"]
+
+
+def test_age_mixed_inclusive_range_recovers_entity_and_bounds():
+    row = deterministic_criterion(
+        source=r"\>= 3 years of age and \<30 years old at study entry",
+        criterion_type="inclusion", entity="",
+    )
+    assert row["entity"] == "Age"
+    assert row["unit"] == "years"
+    assert (row["lower_bound"], row["upper_bound"]) == (3, 30)
+    assert row["lower_inclusive"] is True
+    assert row["upper_inclusive"] is False
+
+
+def test_model_negation_cannot_reverse_plain_numerical_threshold():
+    row = deterministic_criterion(
+        source="eGFR <=15 mL/min/1.73 m2", criterion_type="exclusion",
+        entity="eGFR", negated=True,
+    )
+    assert row["negated"] is False
+    assert row["value"] == "15"
+    assert row["unit"] == "mL/min/1.73 m2"
+
+
+def test_temporal_range_is_not_misread_as_entity_value():
+    row = deterministic_criterion(
+        source="Ischemic stroke within 2-12 weeks after randomization",
+        criterion_type="inclusion", entity="ischemic stroke",
+    )
+    assert row["value"] == "present"
+    assert row["lower_bound"] is None and row["upper_bound"] is None
+    assert row["temporal"] == "within 2-12 weeks after randomization"
+
+
+def test_temporal_unit_does_not_trigger_missing_measurement_unit():
+    row = {
+        "criterion_type": "inclusion", "entity": "neutralizing antibody titer",
+        "source": "titer <1:2 or equivocal within 90 days of screening",
+        "comparator": "<", "value": "1", "unit": None, "negated": False,
+        "temporal": "within 90 days of screening", "repetition": None,
+        "lower_bound": None, "lower_inclusive": None, "upper_bound": 1,
+        "upper_inclusive": False, "logical_operator": "standalone",
+        "parent_atom_count": 1,
+    }
+    assert "UNIT_UNCAPTURED" not in {item["code"] for item in validate_criterion(row)}
+
+
+def test_protocol_hash_is_carried_into_normalized_rows():
+    row = normalize_rows(
+        {"rows": [_model_row("Age >=18 years", "age", "person", comparator=">=", value="18")]},
+        protocol_id="NCT1", source_version="v1", protocol_hash="sha256:test",
+        source_retrieved_at="2026-01-01T00:00:00+00:00", trial_id="NCT00000001",
+    )[0]
+    assert row["protocol_hash"] == "sha256:test"
+    assert row["trial_id"] == "NCT00000001"
+    assert "PROVENANCE_INCOMPLETE" not in row["readiness_blockers"]
 
 
 def test_configured_aliases_normalize_abbreviations_and_full_names():

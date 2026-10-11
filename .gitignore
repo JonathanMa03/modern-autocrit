@@ -55,3 +55,6 @@ config/eavLibrary_*.json
 config/eavLibrary_*.csv
 config/criteriaLibrary_*.json
 config/criteriaLibrary_*.csv
+
+# Local spreadsheet-based cohort review
+/*_human_review_*.xlsx

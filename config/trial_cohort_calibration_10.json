@@ -1,0 +1,20 @@
+{
+  "schema_version": "modern-autocrit.trial-cohort.v1",
+  "cohort_id": "metricspace-100-trial-cohort",
+  "expected_trial_count": 10,
+  "parent_manifest": "trial_cohort_100.json",
+  "description": "Balanced 10-trial calibration subset of the full cohort. It intentionally shares the parent cohort_id so completed calibration jobs are skipped when the full 100-trial run begins.",
+  "selection_date": "2026-10-10",
+  "trials": [
+    {"slot":4,"cohort":"oncology","trial_id":"NCT02572167","phase":"PHASE1/PHASE2","title":"Brentuximab vedotin plus nivolumab in Hodgkin lymphoma"},
+    {"slot":17,"cohort":"oncology","trial_id":"NCT05355701","phase":"PHASE1","title":"PF-07799933 in advanced solid tumors with BRAF alterations"},
+    {"slot":19,"cohort":"oncology","trial_id":"NCT03875781","phase":"PHASE3","title":"Preoperative chemotherapy without pelvic irradiation in rectal cancer"},
+    {"slot":30,"cohort":"oncology","trial_id":"NCT01319864","phase":"PHASE1","title":"Plerixafor in pediatric relapsed acute leukemia and MDS"},
+    {"slot":39,"cohort":"oncology","trial_id":"NCT03653507","phase":"PHASE3","title":"Zolbetuximab plus CAPOX in CLDN18.2-positive gastric/GEJ cancer"},
+    {"slot":51,"cohort":"cardiovascular","trial_id":"NCT01643330","phase":"PHASE2","title":"A Study of Genetically Targeted Enzyme Replacement Therapy for Advanced Heart Failure"},
+    {"slot":68,"cohort":"cardiovascular","trial_id":"NCT06212674","phase":"PHASE4","title":"Pulmonary Vein Isolation and Left Atrial Appendage Occlusion After Ischemic Stroke"},
+    {"slot":76,"cohort":"cardiovascular","trial_id":"NCT05030428","phase":"PHASE3","title":"Inclisiran to Prevent Events in Established Cardiovascular Disease"},
+    {"slot":84,"cohort":"cardiovascular","trial_id":"NCT00327587","phase":"PHASE3","title":"Valsartan, Hydrochlorothiazide, and Amlodipine in Hypertension"},
+    {"slot":93,"cohort":"cardiovascular","trial_id":"NCT01758614","phase":"PHASE3","title":"Carotid and Middle Cerebral Artery Occlusion Surgery Study"}
+  ]
+}

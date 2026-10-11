@@ -11,7 +11,7 @@ COMPARISON_LANGUAGE = re.compile(
     re.I,
 )
 NEGATION_LANGUAGE = re.compile(
-    r"\b(?:no|not|without|absence of|negative for|free of|never)\b", re.I
+    r"\b(?:no(?!\s+more\s+than)|not|without|absence of|negative for|free of|never)\b", re.I
 )
 TEMPORAL_LANGUAGE = re.compile(
     r"\b(?:within|prior to|before|after|during|for at least|past|previous|last|history of)\b",
@@ -22,9 +22,10 @@ REPETITION_LANGUAGE = re.compile(
     r"(?:occasions?|times?|measurements?|visits?)\b",
     re.I,
 )
-UNIT_LANGUAGE = re.compile(
-    r"\b(?:years?|months?|weeks?|days?|hours?|mmhg|mg/dl|mmol/l|umol/l|µmol/l|"
-    r"kg/m2|kg/m²|iu/l|u/l|ml/min|cells?/ul|seconds?|sec|msec|ms|%)\b",
+COMPARISON_WITH_UNIT = re.compile(
+    r"(?:>=|<=|>|<|=|≥|≤)\s*\d+(?:\.\d+)?(?:\s*/\s*\d+(?:\.\d+)?)?\s*"
+    r"(?:kg/m2|kg/m²|iu/l|u/l|ml/min(?:/1\.73\s*m2)?|cells?/(?:ul|mm\^?3)|"
+    r"pg/ml|ng/ml|mg/dl|mmol/l|umol/l|µmol/l|g/dl|mmhg|seconds?|sec|msec|ms|%|x\s*uln)\b",
     re.I,
 )
 COMPOUND_LANGUAGE = re.compile(r"\b(?:and|or|except|unless)\b|;", re.I)
@@ -32,6 +33,33 @@ COMPOUND_LANGUAGE = re.compile(r"\b(?:and|or|except|unless)\b|;", re.I)
 
 def _issue(code: str, severity: str, message: str, field: str) -> dict[str, str]:
     return {"code": code, "severity": severity, "field": field, "message": message}
+
+
+def criterion_semantic_signature(row: dict[str, Any]) -> tuple[Any, ...]:
+    """Return the fields that make an atomic criterion semantically distinct."""
+    return (
+        row.get("parent_statement_id"), row.get("criterion_type"),
+        str(row.get("entity") or "").strip().casefold(), row.get("comparator"),
+        str(row.get("value") or "").strip().casefold(),
+        str(row.get("unit") or "").strip().casefold(), row.get("lower_bound"),
+        row.get("lower_inclusive"), row.get("upper_bound"), row.get("upper_inclusive"),
+        bool(row.get("negated")), str(row.get("temporal") or "").strip().casefold(),
+        str(row.get("repetition") or "").strip().casefold(),
+        str(row.get("qualifier") or "").strip().casefold(),
+    )
+
+
+def duplicate_criterion_ids(rows: list[dict[str, Any]]) -> set[str]:
+    """Return row identifiers duplicated within the same parent statement."""
+    groups: dict[tuple[Any, ...], list[str]] = {}
+    for row in rows:
+        signature = criterion_semantic_signature(row)
+        identifier = str(row.get("criterion_id") or row.get("row_id") or "")
+        groups.setdefault(signature, []).append(identifier)
+    return {
+        identifier for identifiers in groups.values() if len(identifiers) > 1
+        for identifier in identifiers
+    }
 
 
 def validate_criterion(row: dict[str, Any]) -> list[dict[str, str]]:
@@ -63,11 +91,12 @@ def validate_criterion(row: dict[str, Any]) -> list[dict[str, str]]:
     if NEGATION_LANGUAGE.search(source) and not row.get("negated"):
         # "not due to" modifies etiology and must not negate the main entity.
         if not re.search(r"\bnot\s+due\s+to\b", source, re.I):
-            issues.append(_issue("NEGATION_UNCAPTURED", "error", "Source contains negation that is not represented.", "negated"))
+            issues.append(_issue("NEGATION_UNCAPTURED", "warning", "Source contains negation whose scope should be checked.", "negated"))
     if row.get("negated") and str(value).casefold() not in {"absent", "0", "false", "no"}:
-        issues.append(_issue("NEGATION_VALUE_CONFLICT", "error", "Negated categorical criteria should encode absence.", "value"))
+        severity = "warning" if comparator else "error"
+        issues.append(_issue("NEGATION_VALUE_CONFLICT", severity, "Check whether the numerical expression qualifies a negated entity.", "value"))
 
-    if comparator and UNIT_LANGUAGE.search(source) and not str(row.get("unit") or "").strip():
+    if comparator and COMPARISON_WITH_UNIT.search(source) and not str(row.get("unit") or "").strip():
         issues.append(_issue("UNIT_UNCAPTURED", "error", "Source contains a measurement unit that is not represented.", "unit"))
     if TEMPORAL_LANGUAGE.search(source) and not row.get("temporal"):
         issues.append(_issue("TEMPORAL_UNCAPTURED", "error", "Source contains a temporal restriction that is not represented.", "temporal"))
