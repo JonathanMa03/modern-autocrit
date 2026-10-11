@@ -83,6 +83,31 @@ def test_segmentation_has_stable_source_ids_and_splits_semicolons():
     assert rows == segment_criteria("Exclusion Criteria:\nGPL >40; MPL >40; APL >50; dRVVT >37 sec")
 
 
+def test_segmentation_accepts_qualified_registry_headings():
+    rows = segment_criteria(
+        "General Inclusion Criteria:\n* ECOG performance status of 0 or 1\n"
+        "Inclusion Criteria for Participants with Stage III NSCLC:\n* Unresectable Stage III NSCLC\n"
+        "Exclusion Criteria Trial and Registry:\n* Prior myocardial infarction"
+    )
+    assert [(row["criterion_type"], row["source"]) for row in rows] == [
+        ("inclusion", "ECOG performance status of 0 or 1"),
+        ("inclusion", "Unresectable Stage III NSCLC"),
+        ("exclusion", "Prior myocardial infarction"),
+    ]
+
+
+def test_dense_legacy_registry_fields_are_separate_parent_statements():
+    rows = segment_criteria(
+        "Inclusion Criteria:\n* PATIENT CHARACTERISTICS: Age: 55 and under "
+        "Performance status: Karnofsky 70-100% Life expectancy: Not specified "
+        "Hepatic: Bilirubin less than 2.5 mg/dL Renal: Creatinine within normal range"
+    )
+    assert [row["source"].split(":", 1)[0].casefold() for row in rows] == [
+        "age", "performance status", "life expectancy", "hepatic", "renal"
+    ]
+    assert len({row["parent_statement_id"] for row in rows}) == 5
+
+
 def test_multiple_entities_share_source_and_retain_boolean_logic():
     source = "deep vein thrombosis or pulmonary embolus"
     rows = normalize_rows({"rows": [
@@ -270,6 +295,27 @@ def test_age_mixed_inclusive_range_recovers_entity_and_bounds():
     assert (row["lower_bound"], row["upper_bound"]) == (3, 30)
     assert row["lower_inclusive"] is True
     assert row["upper_inclusive"] is False
+
+
+def test_mixed_month_year_interval_is_normalized_before_order_validation():
+    row = deterministic_criterion(
+        source="duration of >=6 months and <=3 years",
+        criterion_type="inclusion", entity="duration",
+    )
+    assert (row["lower_bound"], row["upper_bound"], row["unit"]) == (6, 36, "months")
+    assert row["interval"] == "[6, 36]"
+
+
+def test_registry_slash_equal_operator_and_context_free_blood_pressure():
+    threshold = deterministic_criterion(
+        source=r"Leukocytes \>/= 3,000/microgram", criterion_type="inclusion",
+        entity="leukocytes",
+    )
+    assert (threshold["comparator"], threshold["value"]) == (">=", "3000")
+    pressure = deterministic_criterion(
+        source=r"(\< 140/90 mmHg)", criterion_type="inclusion", entity="",
+    )
+    assert pressure["entity"] == "Blood Pressure"
 
 
 def test_model_negation_cannot_reverse_plain_numerical_threshold():

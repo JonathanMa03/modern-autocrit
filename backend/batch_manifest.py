@@ -149,6 +149,12 @@ def run_manifest(
             if job["status"] == "failed":
                 record["attempts"] = int(record.get("attempts", 0)) + 1
                 atomic_write_json(state_path, state)
+                if "No eligibility criteria could be segmented" in str(job.get("error") or job.get("message") or ""):
+                    print(
+                        f"{trial_id}: deterministic segmentation failure; not retrying unchanged input",
+                        flush=True,
+                    )
+                    break
                 if record["attempts"] > retry_limit:
                     print(f"{trial_id}: failed after resumable retries; continuing to next trial", flush=True)
                     break

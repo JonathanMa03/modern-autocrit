@@ -32,7 +32,7 @@ BETWEEN = re.compile(
 )
 DOUBLE_COMPARATOR = re.compile(
     r"(?P<lower_comparator>>=|>)\s*(?P<lower>\d+(?:\.\d+)?)\s*"
-    r"(?:years?(?:\s+old|\s+of\s+age)?|months?|weeks?|days?|kg/m2|kg/m²|mmHg|mg/dL|mmol/L|%)?\s*"
+    r"(?P<lower_unit>years?(?:\s+old|\s+of\s+age)?|months?|weeks?|days?|kg/m2|kg/m²|mmHg|mg/dL|mmol/L|%)?\s*"
     r"(?:and|,)?\s*"
     r"(?P<upper_comparator><=|<)\s*(?P<upper>\d+(?:\.\d+)?)\s*"
     r"(?P<unit>years?|months?|weeks?|days?|kg/m2|kg/m²|mmHg|mg/dL|mmol/L|%)?", re.I,
@@ -67,7 +67,7 @@ TEXT_COMPARATOR = re.compile(
     r"greater\s+than\s+or\s+equal\s+to|at\s+least|minimum\s+of|"
     r"more\s+than|greater\s+than|less\s+than|above|below)\s+"
     r"(?P<value>\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten)"
-    r"\s*(?P<unit>%|mg|g|ml|mL|mmHg|/mcl|mcl|weeks?|months?|years?|days?|cycles?|drugs?)?",
+    r"\s*(?P<unit>%|mg|g|ml|mL|mmHg|m/s|/mcl|mcl|weeks?|months?|years?|days?|cycles?|drugs?)?",
     re.I,
 )
 REVERSED_TEXT_COMPARATOR = re.compile(
@@ -206,6 +206,37 @@ def _text_comparator(phrase: str) -> str:
     if normalized in {"greater than or equal to", "at least", "minimum of", "or more", "or greater"}:
         return ">="
     return "<" if normalized in {"less than", "below"} else ">"
+
+
+def _normalize_operator_escapes(value: str) -> str:
+    r"""Normalize Markdown and registry variants such as ``\>/=`` to ``>=``."""
+    value = re.sub(r"\\?([<>])\s*/\s*=", r"\1=", value)
+    return re.sub(r"\\(?=[<>])", "", value).replace("≥", ">=").replace("≤", "<=")
+
+
+def _common_time_bounds(
+    lower: int | float, lower_unit: str | None,
+    upper: int | float, upper_unit: str | None,
+) -> tuple[int | float, int | float, str | None]:
+    """Put exact month/year bounds on one scale before interval validation."""
+    def clean(unit: str | None) -> str | None:
+        if not unit:
+            return None
+        token = unit.casefold().strip()
+        if token.startswith("year"): return "years"
+        if token.startswith("month"): return "months"
+        if token.startswith("week"): return "weeks"
+        if token.startswith("day"): return "days"
+        return unit.strip()
+
+    lower_unit, upper_unit = clean(lower_unit), clean(upper_unit)
+    if lower_unit == upper_unit or not lower_unit or not upper_unit:
+        return lower, upper, lower_unit or upper_unit
+    if {lower_unit, upper_unit} == {"months", "years"}:
+        if lower_unit == "months":
+            return lower, upper * 12, "months"
+        return lower, upper / 12, "years"
+    return lower, upper, lower_unit or upper_unit
 
 
 def _local_text_entity(source: str, start: int, end: int, unit: str | None) -> str:
@@ -366,7 +397,7 @@ def interval_notation(lower: int | float | None, lower_inclusive: bool | None, u
 def deterministic_criterion(*, source: str, criterion_type: str, entity: str = "", domain: str = "", comparator: str | None = None, value: Any = None, unit: str | None = None, negated: bool | None = None, qualifier: str | None = None, temporal: str | None = None, repetition: str | None = None, logical_operator: str = "standalone", lower_bound: Any = None, lower_inclusive: bool | None = None, upper_bound: Any = None, upper_inclusive: bool | None = None) -> dict[str, Any]:
     """Enforce literal comparison fields and retain semantic constructs."""
     raw = str(source or "").strip()
-    normalized_raw = re.sub(r"\\(?=[<>])", "", raw).replace("≥", ">=").replace("≤", "<=")
+    normalized_raw = _normalize_operator_escapes(raw)
     normalized_raw = re.sub(
         r"(?P<op>>=|<=|>|<)\s*grade\s*(?P<value>\d+(?:\.\d+)?)",
         lambda match: f"{match.group('op')} {match.group('value')} grade",
@@ -408,8 +439,13 @@ def deterministic_criterion(*, source: str, criterion_type: str, entity: str = "
         groups = range_match.groupdict()
         final_lower_inclusive = groups.get("lower_comparator", ">=") == ">="
         final_upper_inclusive = groups.get("upper_comparator", "<=") == "<="
+        lower_unit = (groups.get("lower_unit") or "").strip() or None
+        upper_unit = (groups.get("unit") or "").strip() or None
+        final_lower, final_upper, common_unit = _common_time_bounds(
+            final_lower, lower_unit, final_upper, upper_unit,
+        )
         final_value = f"{final_lower} to {final_upper}"
-        final_unit = (range_match.groupdict().get("unit") or "").strip() or (str(unit).strip() if unit else None)
+        final_unit = common_unit or (str(unit).strip() if unit else None)
         if not final_unit and re.search(r"\b(?:aged?|ages?)\b", normalized_raw, re.I): final_unit = "years"
         if final_unit and final_unit.casefold().startswith("year"): final_unit = "years"
         measured = normalized_entity
@@ -440,6 +476,8 @@ def deterministic_criterion(*, source: str, criterion_type: str, entity: str = "
             if final_comparator in {">", ">="}: final_lower, final_lower_inclusive = bound, final_comparator == ">="
             elif final_comparator in {"<", "<="}: final_upper, final_upper_inclusive = bound, final_comparator == "<="
             elif final_comparator == "=": final_lower = final_upper = bound; final_lower_inclusive = final_upper_inclusive = True
+        if not measured and final_unit and final_unit.casefold() == "mmhg" and "/" in final_value:
+            measured = "Blood Pressure"
     elif comparator in {">", ">=", "<", "<=", "="} and value is not None:
         final_comparator = comparator
         final_value = str(value).strip()
@@ -538,20 +576,56 @@ def _stable_id(prefix: str, *parts: Any) -> str:
     return f"{prefix}-{hashlib.sha256(material.encode('utf-8')).hexdigest()[:16]}"
 
 
+def _criterion_heading(line: str) -> str | None:
+    """Return a section type for common registry heading variants."""
+    heading = re.fullmatch(
+        r"(?:\d+(?:\.\d+)*\s+)?\*{0,2}"
+        r"(?:(?:general|key|main|additional|specific)\s+)?"
+        r"(inclusion|exclusion)\s+criteria"
+        r"(?:\s+(?:for|trial|registry|part|cohort|participants?|patients?|subjects?|stage)\b.*?)?"
+        r"\s*:?\*{0,2}",
+        line, re.I,
+    )
+    return heading.group(1).casefold() if heading else None
+
+
+LEGACY_FIELD = re.compile(
+    r"\b(?:age|performance\s+status|life\s+expectancy|hematopoietic|hepatic|renal|"
+    r"cardiovascular|pulmonary|neurologic|other)\s*:", re.I,
+)
+
+
+def _legacy_sections(source: str) -> list[str]:
+    """Split dense legacy registry prose into its labeled clinical sections."""
+    matches = list(LEGACY_FIELD.finditer(source))
+    if len(matches) < 3:
+        return [source]
+    sections = []
+    for index, match in enumerate(matches):
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(source)
+        section = source[match.start():end].strip(" ,;.")
+        if section:
+            sections.append(section)
+    return sections or [source]
+
+
 def segment_criteria(text: str, *, protocol_id: str = "UNSPECIFIED", source_version: str = "unversioned") -> list[dict[str, Any]]:
     current = "inclusion"
-    has_heading = bool(re.search(r"^\s*(?:\d+(?:\.\d+)*\s+)?(?:inclusion|exclusion)\s+criteria\s*:?.*$", str(text or ""), re.I | re.M))
+    lines = str(text or "").replace("\r\n", "\n").split("\n")
+    has_heading = any(_criterion_heading(raw.strip()) for raw in lines)
     started, rows, active = not has_heading, [], None
-    for raw in str(text or "").replace("\r\n", "\n").split("\n"):
+    for raw in lines:
         line = raw.strip()
         if not line: continue
-        heading = re.fullmatch(r"(?:\d+(?:\.\d+)*\s+)?\*{0,2}(inclusion|exclusion)(?:\s+criteria)?\s*:?\*{0,2}", line, re.I)
+        heading = _criterion_heading(line)
         if heading:
-            current, started, active = heading.group(1).casefold(), True, None; continue
+            current, started, active = heading, True, None; continue
         if not started: continue
         item = re.match(r"^(?:[-*•]\s+|\d+[.)]\s+)(.*)$", line)
         if item:
-            active = {"criterion_type": current, "source": item.group(1).strip()}; rows.append(active)
+            sections = _legacy_sections(item.group(1).strip())
+            for section in sections:
+                active = {"criterion_type": current, "source": section}; rows.append(active)
         elif has_heading and active is None and (COMPARATOR.search(line) or RANGE.search(line) or BETWEEN.search(line) or ";" in line):
             active = {"criterion_type": current, "source": line}; rows.append(active)
         elif has_heading and line.endswith(":"): active = None
